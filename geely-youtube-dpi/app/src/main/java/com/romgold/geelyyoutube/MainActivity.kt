@@ -550,15 +550,17 @@ class MainActivity : Activity() {
             try {
                 val info = StreamInfo.getInfo(url)
                 val dashUrl = info.dashMpdUrl
+                val hlsUrl = info.hlsUrl
                 val muxedStream = info.videoStreams.firstOrNull { !it.isVideoOnly }
                 // NewPipe exposes video-only streams separately from videoStreams.
                 val videoOnlyStream = info.videoOnlyStreams.firstOrNull()
                 val fallbackVideo = muxedStream ?: videoOnlyStream
-                val audioStream = if (muxedStream == null && dashUrl.isBlank()) info.audioStreams.firstOrNull() else null
+                val manifestAvailable = dashUrl.isNotBlank() || hlsUrl.isNotBlank()
+                val audioStream = if (muxedStream == null && !manifestAvailable) info.audioStreams.firstOrNull() else null
                 val streamUrl = fallbackVideo?.content
-                if (dashUrl.isBlank() && (streamUrl.isNullOrBlank() ||
+                if (!manifestAvailable && (streamUrl.isNullOrBlank() ||
                         (muxedStream == null && audioStream?.content.isNullOrBlank()))) {
-                    throw IllegalStateException("YouTube не вернул совместимый видеопоток или DASH-манифест")
+                    throw IllegalStateException("YouTube не вернул совместимый видеопоток или манифест")
                 }
                 val audioUrl = audioStream?.content
                 recordHistory(title, url)
@@ -566,11 +568,15 @@ class MainActivity : Activity() {
                     refreshHistory(homeRecent, 4)
                     refreshHistory(libraryList)
                     val playerIntent = Intent(this, VideoPlayerActivity::class.java)
-                    if (dashUrl.isNotBlank()) {
-                        playerIntent.putExtra(VideoPlayerActivity.EXTRA_DASH_URL, dashUrl)
-                    } else {
-                        playerIntent.putExtra(VideoPlayerActivity.EXTRA_STREAM_URL, streamUrl)
-                        if (!audioUrl.isNullOrBlank()) playerIntent.putExtra(VideoPlayerActivity.EXTRA_AUDIO_URL, audioUrl)
+                    when {
+                        dashUrl.isNotBlank() ->
+                            playerIntent.putExtra(VideoPlayerActivity.EXTRA_DASH_URL, dashUrl)
+                        hlsUrl.isNotBlank() ->
+                            playerIntent.putExtra(VideoPlayerActivity.EXTRA_HLS_URL, hlsUrl)
+                        else -> {
+                            playerIntent.putExtra(VideoPlayerActivity.EXTRA_STREAM_URL, streamUrl)
+                            if (!audioUrl.isNullOrBlank()) playerIntent.putExtra(VideoPlayerActivity.EXTRA_AUDIO_URL, audioUrl)
+                        }
                     }
                     startActivity(playerIntent)
                 }
