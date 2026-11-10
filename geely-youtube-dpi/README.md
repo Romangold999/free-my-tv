@@ -29,23 +29,40 @@ DPI bypass is not encryption, does not hide the user's IP address, and cannot gu
 
 ## Compatibility baseline
 
-NewPipe 0.28.8 is the initial reference client because it declares minSdk 21 (Android 5.0). NewPipe 0.29.0 raised minSdk to 23 (Android 6). Any NewPipe-derived code must retain its GPL-3.0-or-later licensing and required notices/source availability. ByeDPIAndroid is also GPL-3.0; the exact native ByeDPI submodule license and notices must be retained when vendored.
+- Uses NewPipe Extractor v0.26.3, the extractor release shipped with NewPipe v0.28.8. NewPipe v0.29.0 raised the full app's minSdk to 23, so do not upgrade blindly when preserving Android 5 support.
+- This project uses the extractor library, not the full NewPipe app UI.
+- NewPipe Extractor and the embedded ByeDPI Android bridge are GPL-3.0-or-later; the native ByeDPI submodule is MIT. Preserve license texts, notices and source availability when distributing builds.
+
+## Current implementation
+
+- Native ByeDPI listener is embedded through JNI and managed by an Android foreground service.
+- The exact user baseline remains available as an editable named profile. The service restarts the proxy when a different profile is started.
+- Extractor requests, thumbnail requests and ExoPlayer media requests are explicitly routed through SOCKS5 at 127.0.0.1:1080; there is no direct fallback in these paths.
+- The proxy controller probes the local SOCKS listener before reporting startup success.
+- The app currently provides Home/trending, Search, channel pages, local subscriptions, local watch history/library, profile settings and fullscreen playback.
+- Playback prefers a DASH manifest when available, otherwise uses a muxed stream or attempts a separate video/audio pair.
+- The interface adapts navigation and thumbnail dimensions to compact phone and wider display sizes.
 
 ## Build and delivery
 
-GitHub Actions will build APKs for the verified ABIs. The workflow must publish artifacts that can be downloaded directly to an Android phone. No local Android Studio setup should be required from the user.
+GitHub Actions builds a debug APK for ARMv7 and ARM64. CI now verifies that both `libbyedpi.so` binaries are packaged and that the manifest retains minSdk 21 and targetSdk 28. No local Android Studio setup is required from the user.
+
+Latest successful CI build: run #73, commit `f0d2ce627e268825b358e26877fc2a549ebf5dff`. This verifies compilation and APK packaging only, not runtime behavior on either target device.
 
 ## Development status
 
 - [x] Dedicated branch created from the existing launcher repository.
-- [x] Confirmed upstream ByeDPIAndroid has a JNI-accessible local SOCKS proxy path, separate from its VPN/TUN redirection path.
-- [x] Saved the exact user-supplied YouTube command as the initial editable profile.
-- [ ] Import/pin the Android 5-compatible NewPipe 0.28.8 source and preserve licensing.
-- [ ] Vendor the minimal ByeDPI native source and JNI bridge; inspect native submodule license and build flags.
-- [ ] Route every relevant NewPipe HTTP client through the local SOCKS proxy.
-- [ ] Verify head-unit CPU ABI and Android 5 runtime constraints.
-- [ ] Add large-touch, landscape-first in-car UI and profile editor.
-- [ ] Add reproducible GitHub Actions APK builds.
-- [ ] Verify installation, search and playback on Android 5 and Android 14 devices.
+- [x] Pinned ByeDPI JNI/native dependency and retained license files.
+- [x] Editable named ByeDPI profiles with restart-on-switch behavior.
+- [x] SOCKS-routed NewPipe Extractor, thumbnails and ExoPlayer media transport.
+- [x] Home/trending, search, channels, local subscriptions and local history.
+- [x] DASH playback path and progressive fallback.
+- [x] Responsive navigation and thumbnail sizing.
+- [x] Reproducible GitHub Actions build with ARMv7/ARM64 and APK metadata checks.
+- [ ] Safe Google OAuth / account-synced subscriptions and history.
+- [ ] Verify the head-unit ABI and run on the actual Android 5.0 Geely head unit.
+- [ ] Install and test on the actual Android 14 phone.
+- [ ] Validate ByeDPI network effectiveness, long-running service stability, sleep/resume, search and audio/video playback on both devices.
+- [ ] Validate codec/format coverage, live streams, captions and quality selection.
 
-Nothing in this directory is a tested APK yet. A successful CI build and real-device playback tests are required before calling it ready.
+A green CI build is not a finished APK. Do not mark this project ready until the real-device checks above have been completed.
