@@ -42,26 +42,10 @@ jobs:
           git -C third_party/ByeDPIAndroid submodule update --init --recursive
           mkdir -p geely-youtube-dpi/app/src/main/cpp/byedpi
           cp -a third_party/ByeDPIAndroid/app/src/main/cpp/byedpi/. geely-youtube-dpi/app/src/main/cpp/byedpi/
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path("geely-youtube-dpi/app/src/main/cpp/byedpi/main.c")
-          lines = p.read_text().splitlines()
-          for i, line in enumerate(lines):
-              if line.startswith("int main(int argc, char **argv)"):
-                  lines[i] = line.replace("int main(", "int parse_args(", 1)
-                  break
-          else:
-              raise SystemExit("Could not locate upstream ByeDPI main() declaration")
-          sig = next((i for i, line in enumerate(lines) if line.startswith("int parse_args(int argc, char **argv)")), None)
-          if sig is None or lines[sig + 1].strip() != "{":
-              raise SystemExit("Could not locate ByeDPI parser signature")
-          lines[sig + 2:sig + 2] = ["    optind = 1;", "    opterr = 0;"]
-          tail = next((i for i, line in enumerate(lines) if "int status = run((struct sockaddr_ina *)&params.laddr);" in line), None)
-          if tail is None or "clear_params();" not in lines[tail + 1] or "return status;" not in lines[tail + 2]:
-              raise SystemExit("Could not locate ByeDPI main() tail")
-          lines[tail:tail + 3] = ["    return 0;"]
-          p.write_text("\n".join(lines) + "\n")
-          PY
+          # The Android wrapper already provides parse_args() in utils.c.
+          # Keep upstream byedpi/main.c unchanged: renaming its CLI main()
+          # to parse_args() creates a duplicate symbol at link time.
+          grep -Fq 'int parse_args(int argc, char **argv)' geely-youtube-dpi/app/src/main/cpp/utils.c
       - name: Verify original ByeDPI baseline consistency
         run: |
           EXPECTED='-Ku -a3 -An -Kt,h -n vk.com -d1 -d3+s -s6+s -d9+s -s12+s -d15+s -s20+s -d25+s -s30+s -d35+s -r1+s -S -Mh,d -As -Kt,h -n vk.com -d1 -d3+s -s6+s -d9+s -s12+s -d15+s -d20+s -d25+s -d30+s -d35+s -S -Mh,d'
@@ -81,6 +65,7 @@ jobs:
           for ABI in armeabi-v7a arm64-v8a; do
             echo "$CONTENTS" | grep -qx "lib/$ABI/libbyedpi.so"
             unzip -p "$APK" "lib/$ABI/libbyedpi.so" > "/tmp/libbyedpi-$ABI.so"
+            readelf --dyn-syms --wide "/tmp/libbyedpi-$ABI.so" | awk '$8 == "parse_args" && $7 != "UND" { found=1 } END { exit !found }'
             for SYMBOL in \
               Java_io_github_dovecoteescapee_byedpi_core_ByeDpiProxy_jniCreateSocketWithCommandLine \
               Java_io_github_dovecoteescapee_byedpi_core_ByeDpiProxy_jniStartProxy \
