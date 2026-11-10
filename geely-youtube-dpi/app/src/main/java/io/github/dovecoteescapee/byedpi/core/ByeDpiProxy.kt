@@ -60,8 +60,17 @@ class ByeDpiProxy {
         while (System.currentTimeMillis() < deadline) {
             if (socketFd != expectedFd || worker?.isAlive != true) return false
             try {
-                Socket().use { it.connect(InetSocketAddress("127.0.0.1", 1080), 120) }
-                return true
+                Socket().use { socket ->
+                    socket.connect(InetSocketAddress("127.0.0.1", 1080), 250)
+                    socket.soTimeout = 500
+                    // Complete a SOCKS5 no-auth greeting instead of treating
+                    // any process listening on TCP/1080 as a healthy proxy.
+                    socket.getOutputStream().write(byteArrayOf(0x05, 0x01, 0x00))
+                    socket.getOutputStream().flush()
+                    val version = socket.getInputStream().read()
+                    val method = socket.getInputStream().read()
+                    if (version == 0x05 && method == 0x00) return true
+                }
             } catch (_: Exception) {
                 Thread.sleep(50)
             }
