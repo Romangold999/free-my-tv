@@ -141,3 +141,34 @@ Important: This proves the current debug APK compiles and was uploaded as an Act
 - Phone test path should be simple: provide a directly downloadable debug APK from GitHub Actions artifact/release; user installs it on Android 14 and reports results. Do not require Android Studio, adb, or manual builds from the user.
 - Maintain a device test checklist and record actual outcomes separately for (A) Android 14 phone and (B) Geely Android 5.0 head unit: install/launch, adaptive layout, account flow, search, ByeDPI profile switching, stream playback, audio, fullscreen, sleep/resume, and stability. Never mark a device test passed until the user confirms it or verified test evidence exists.
 - Current Gradle config inspected 2026-11-10: `minSdk = 21`, `targetSdk = 28`, ABI filters `armeabi-v7a` + `arm64-v8a`. This is a compatibility starting point, not proof of runtime support.
+
+
+## Verified checkpoint — 2026-11-10 18:39 UTC
+
+The previous "Latest build result" sections above are historical and must not be treated as current. The current branch head at this checkpoint is commit `dcc7ada053c5743625788d76f2fdcf97c2a0fdaa`.
+
+Latest Actions run:
+- Run ID: `42875981439`
+- Branch: `geely-youtube-dpi`
+- Commit: `dcc7ada053c5743625788d76f2fdcf97c2a0fdaa`
+- Conclusion: `success`
+- Build debug APK: success
+- Artifact upload: success
+- Artifact name: `geely-youtube-debug-apk`
+- Artifact ID: `13792975484`
+- Size: 3,771,079 bytes
+- SHA-256: `22f7ba43f976e7966aa0c5bfff600d78906da2c7141c4f472f5fffd3591cd313`
+- Run page: https://github.com/Romangold999/free-my-tv/actions/runs/42875981439
+
+**Product status, stated plainly:** this is not a finished YouTube application. It is a technical prototype with a rudimentary settings/search screen, embedded ByeDPI controls, and NewPipe Extractor search. Selecting a result only displays its URL; no video player is integrated. No home/recommendation feed, thumbnail grid, channel pages, subscriptions, history/library, account sign-in, or responsive production UI exists yet. No real-device runtime test has been performed.
+
+Do not present the current artifact as a finished app or imply it is ready for daily use. It may be used only as an engineering smoke-test APK if explicitly useful.
+
+## Delivery milestones and honest release gates
+
+Do not promise a calendar delivery date before the major unknowns are resolved. Deliver in verified milestones:
+1. **Playable alpha:** video stream extraction plus an embedded player; verify the video/audio requests use the local SOCKS proxy with no silent direct-network fallback; verify on Android 14 first.
+2. **Usable YouTube-style client:** responsive layouts for phone and wide head unit; home/search/results with thumbnails; video/channel pages; local history/library; robust ByeDPI foreground lifecycle and editable profiles.
+3. **Account-dependent features and head-unit release:** validate safe official Google sign-in/registration route and whether subscriptions/account sync are technically supported; test on actual Android 5.0 head unit, including ARMv7 native library, playback/audio/fullscreen/sleep-resume. Only then call it ready.
+
+Current immediate next task: implement and compile the embedded playback path, beginning with a supported player dependency that preserves minSdk 21, and route all media requests through the SOCKS5 proxy. Keep the original ByeDPI command line untouched as the baseline profile.
