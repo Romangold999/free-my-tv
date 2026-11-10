@@ -6,6 +6,7 @@ import org.schabi.newpipe.extractor.search.SearchInfo
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import org.schabi.newpipe.extractor.kiosk.KioskInfo
 import org.schabi.newpipe.extractor.channel.ChannelInfo
+import org.schabi.newpipe.extractor.channel.ChannelInfoItem
 import org.schabi.newpipe.extractor.channel.tabs.ChannelTabInfo
 import org.schabi.newpipe.extractor.stream.StreamInfoItem
 import java.util.concurrent.Executors
@@ -125,7 +126,7 @@ class MainActivity : Activity() {
         addCard(body, proxyCard)
 
         val feed = card()
-        feed.addView(label("РЕКОМЕНДАЦИИ YOUTUBE", 13f, Color.LTGRAY, true))
+        feed.addView(label("ПОПУЛЯРНОЕ НА YOUTUBE", 13f, Color.LTGRAY, true))
         feed.addView(actionButton("ОБНОВИТЬ ЛЕНТУ") { loadHomeFeed() })
         homeFeed = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         feed.addView(homeFeed)
@@ -168,7 +169,6 @@ class MainActivity : Activity() {
         val (scroll, body) = scrollPage()
         val c = card()
         c.addView(label("Подписки", 26f, Color.WHITE, true))
-        c.addView(label("Раздел подготовлен, но подключение Google/YouTube-аккаунта ещё не реализовано.", 16f, Color.LTGRAY))
         c.addView(label("Подписки здесь хранятся локально. Вход Google и синхронизация аккаунта пока не подключены.", 14f, Color.rgb(255, 190, 110)))
         subscriptionsList = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         c.addView(subscriptionsList)
@@ -387,6 +387,34 @@ class MainActivity : Activity() {
         }
     }
 
+    private fun addChannelCard(parent: LinearLayout, number: Int, title: String, url: String, thumbnailUrl: String) {
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(8), dp(7), dp(8), dp(7))
+            background = GradientDrawable().apply {
+                setColor(Color.rgb(35, 43, 55))
+                cornerRadius = dp(12).toFloat()
+            }
+        }
+        val image = ImageView(this).apply {
+            scaleType = ImageView.ScaleType.CENTER_CROP
+            setBackgroundColor(Color.rgb(55, 65, 80))
+        }
+        row.addView(image, LinearLayout.LayoutParams(dp(76), dp(76)))
+        val column = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(10), 0, 0, 0)
+        }
+        column.addView(label("${number}. ${title}", 14f, Color.WHITE, true))
+        column.addView(label("Канал YouTube", 11f, Color.LTGRAY))
+        column.addView(actionButton("ОТКРЫТЬ КАНАЛ") { openChannel(url) })
+        row.addView(column, LinearLayout.LayoutParams(0, -2, 1f))
+        row.setOnClickListener { openChannel(url) }
+        parent.addView(row, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(8) })
+        if (thumbnailUrl.isNotBlank()) loadThumbnail(thumbnailUrl, image)
+    }
+
     private fun addStreamCard(parent: LinearLayout, number: Int, title: String, url: String, thumbnailUrl: String,
                               channelName: String = "", channelUrl: String = "") {
         val row = LinearLayout(this).apply {
@@ -486,10 +514,13 @@ class MainActivity : Activity() {
                 runOnUiThread {
                     searchResults.removeAllViews()
                     info.relatedItems.forEachIndexed { index, item ->
-                        val stream = item as? StreamInfoItem
-                        addStreamCard(searchResults, index + 1, item.name, item.url,
-                            item.thumbnails.firstOrNull()?.url.orEmpty(),
-                            stream?.uploaderName.orEmpty(), stream?.uploaderUrl.orEmpty())
+                        when (item) {
+                            is StreamInfoItem -> addStreamCard(searchResults, index + 1, item.name, item.url,
+                                item.thumbnails.firstOrNull()?.url.orEmpty(),
+                                item.uploaderName.orEmpty(), item.uploaderUrl.orEmpty())
+                            is ChannelInfoItem -> addChannelCard(searchResults, index + 1, item.name, item.url,
+                                item.thumbnails.firstOrNull()?.url.orEmpty())
+                        }
                     }
                     status.text = "Найдено: ${info.relatedItems.size}"
                 }
@@ -592,8 +623,8 @@ class MainActivity : Activity() {
         }
         refreshPicker(prefs.getString("active_profile", "Мой профиль"))
         loadProfile(prefs.getString("active_profile", "Мой профиль")!!)
-        showPage("home")
         NewPipe.init(ByeDpiExtractorDownloader())
+        showPage("home")
     }
 
     override fun onDestroy() {
