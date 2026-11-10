@@ -65,7 +65,7 @@ class MainActivity : Activity() {
     }
 
     private fun playYoutubeVideo(url: String, title: String) {
-        if (!byeDpi.isRunning()) {
+        if (!ByeDpiService.isProxyRunning()) {
             status.text = "Сначала запусти ByeDPI. Видео будет загружаться только через SOCKS5 127.0.0.1:1080."
             return
         }
