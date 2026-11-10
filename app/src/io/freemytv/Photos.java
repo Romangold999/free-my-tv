@@ -141,7 +141,7 @@ final class Photos {
         if (!on(c)) {
             backdrop = null;
             built = null;
-            return null;
+            return OnlinePhotos.backdrop(c, ready);
         }
         List<File> list = files(c);
         File want = list.get((int) ((System.currentTimeMillis() / 3_600_000L) % list.size()));
