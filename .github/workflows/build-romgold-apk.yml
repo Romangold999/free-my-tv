@@ -63,9 +63,11 @@ jobs:
           s = dream.read_text(encoding="utf-8")
           old = "private static final long SHOW_MS = 30_000, FADE_MS = 3_000, FIRST_MS = 1_600;"
           new = "private static final long SHOW_MS = 300_000, FADE_MS = 3_000, FIRST_MS = 1_600;"
-          if old not in s:
-              raise SystemExit("Could not locate the screensaver interval; refusing an unverified patch.")
-          dream.write_text(s.replace(old, new, 1), encoding="utf-8")
+          if old in s:
+              s = s.replace(old, new, 1)
+          elif new not in s:
+              raise SystemExit("Could not locate a known screensaver interval; refusing an unverified patch.")
+          dream.write_text(s, encoding="utf-8")
           PY
       - name: Build APK
         run: |
