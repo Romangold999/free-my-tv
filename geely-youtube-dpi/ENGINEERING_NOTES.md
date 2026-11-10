@@ -55,3 +55,22 @@ Findings:
 5. Build ARMv7 and ARM64 variants in GitHub Actions; verify Android 5/API 21 compatibility and run playback tests on the actual head unit.
 
 No APK is considered ready until CI succeeds and real-device playback is verified.
+
+
+## Implementation checkpoint — 2026-11-11
+
+The source-level integration described above has now been implemented in the separate app:
+
+- Dependency: NewPipe Extractor v0.26.3 (the version shipped with NewPipe app v0.28.8), not the full NewPipe UI.
+- Extractor downloader: custom `HttpURLConnection` transport through SOCKS5 `127.0.0.1:1080`.
+- Thumbnails: dedicated HTTP connections through the same SOCKS5 proxy.
+- Playback: ExoPlayer 2.19.1 with OkHttp SOCKS transport; DASH manifest playback is preferred when provided by NewPipe Extractor. The fallback uses muxed streams or a separate video/audio pair.
+- Native proxy lifecycle: JNI listener runs on a worker thread owned by a foreground Android Service. Startup probes the local SOCKS listener; stop/restart handles the specific worker instance; profile changes restart the listener with the new argument string.
+- UI: current sections are Home/trending, Search, Channels, local Subscriptions, local History/Library and Profile/ByeDPI settings. Compact navigation scrolls horizontally on narrow screens.
+- CI run #73 passed for commit `f0d2ce627e268825b358e26877fc2a549ebf5dff`, including APK packaging checks for `armeabi-v7a`, `arm64-v8a`, minSdk 21 and targetSdk 28.
+
+Still not proven:
+- A local TCP connect to the SOCKS listener proves only that the local listener accepts a connection. It does not prove that YouTube is reachable through the selected ByeDPI strategy.
+- No physical Android 5.0 or Android 14 device has yet been used to validate installation, native loading, network access, playback, fullscreen, sleep/resume or long-running stability.
+- The current subscriptions and history are local-only. Google OAuth and account synchronization are not implemented.
+- DASH/progressive playback paths compile but have not yet been validated against real YouTube media on the target devices.
