@@ -19,41 +19,41 @@ class ByeDpiProxy {
     @Volatile private var socketFd: Int = -1
     @Volatile private var worker: Thread? = null
 
-    @Synchronized
     fun startProxy(commandLine: String): Boolean {
-        if (socketFd >= 0) return true
+        val fd: Int
+        synchronized(this) {
+            if (socketFd >= 0) return true
 
-        val parsed = shellSplit(commandLine)
-        if (parsed.isEmpty()) return false
-        val args = arrayOf("ciadpi") + parsed
-        val fd = jniCreateSocketWithCommandLine(args)
-        if (fd < 0) return false
+            val parsed = shellSplit(commandLine)
+            if (parsed.isEmpty()) return false
+            val args = arrayOf("ciadpi") + parsed
+            fd = jniCreateSocketWithCommandLine(args)
+            if (fd < 0) return false
 
-        socketFd = fd
-        worker = Thread({
-            try {
-                jniStartProxy(fd)
-            } finally {
-                synchronized(this) {
-                    if (socketFd == fd) socketFd = -1
-                    worker = null
+            socketFd = fd
+            worker = Thread({
+                try {
+                    jniStartProxy(fd)
+                } finally {
+                    synchronized(this) {
+                        if (socketFd == fd) socketFd = -1
+                        worker = null
+                    }
                 }
+            }, "ByeDPI-native-proxy").apply {
+                isDaemon = true
+                start()
             }
-        }, "ByeDPI-native-proxy").apply {
-            isDaemon = true
-            start()
         }
 
-        // A valid file descriptor alone does not prove that the SOCKS listener
-        // entered its event loop. Verify the fixed local endpoint before reporting
-        // a successful start to the foreground service.
+        // Verify outside the monitor: the native worker must be able to publish
+        // its exit state while the listener is being checked.
         if (!waitForListener(fd)) {
             stopProxy()
             return false
         }
         return true
     }
-
 
     private fun waitForListener(expectedFd: Int): Boolean {
         val deadline = System.currentTimeMillis() + 1500L
