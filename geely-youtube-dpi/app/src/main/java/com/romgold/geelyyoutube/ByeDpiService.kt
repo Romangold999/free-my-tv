@@ -18,6 +18,7 @@ class ByeDpiService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        activeService = this
         createNotificationChannel()
     }
 
@@ -27,7 +28,6 @@ class ByeDpiService : Service() {
             ACTION_STOP -> {
                 proxy?.stopProxy()
                 proxy = null
-                isActive = false
                 stopForeground(true)
                 stopSelf()
                 return START_NOT_STICKY
@@ -37,7 +37,6 @@ class ByeDpiService : Service() {
                     .getString("last_byedpi_args", "").orEmpty()
                 val args = intent?.getStringExtra(EXTRA_ARGUMENTS) ?: storedArgs
                 if (args.isBlank()) {
-                    isActive = false
                     stopSelf()
                     return START_NOT_STICKY
                 }
@@ -53,16 +52,13 @@ class ByeDpiService : Service() {
                         else {
                             updateNotification("Не удалось запустить ByeDPI")
                             proxy = null
-                            isActive = false
                             stopForeground(true)
                             stopSelf()
                         }
                     } else {
-                        isActive = true
                         updateNotification("Работает: 127.0.0.1:1080")
                     }
                 } catch (error: Throwable) {
-                    isActive = false
                     updateNotification("Ошибка запуска ByeDPI")
                     stopForeground(true)
                     stopSelf()
@@ -75,7 +71,7 @@ class ByeDpiService : Service() {
     override fun onDestroy() {
         proxy?.stopProxy()
         proxy = null
-        isActive = false
+        if (activeService === this) activeService = null
         stopForeground(true)
         super.onDestroy()
     }
@@ -125,7 +121,7 @@ class ByeDpiService : Service() {
         private const val CHANNEL_ID = "byedpi_proxy"
         private const val NOTIFICATION_ID = 1080
 
-        @Volatile private var isActive = false
-        fun isProxyRunning(): Boolean = isActive
+        @Volatile private var activeService: ByeDpiService? = null
+        fun isProxyRunning(): Boolean = activeService?.proxy?.isRunning() == true
     }
 }
