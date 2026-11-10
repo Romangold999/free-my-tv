@@ -29,7 +29,7 @@ public class MainActivity extends Activity implements SensorEventListener {
     private final Executor executor = command -> new Handler(Looper.getMainLooper()).post(command);
 
     private static final byte[] MOUSE_DESCRIPTOR = new byte[] {
-        0x05,0x01,0x09,0x02,(byte)0xA1,0x01,0x09,0x01,(byte)0xA1,0x00,
+        0x05,0x01,0x09,0x02,(byte)0xA1,0x01,0x09,0x01,(byte)0xA1,0x00,(byte)0x85,0x01,
         0x05,0x09,0x19,0x01,0x29,0x03,0x15,0x00,0x25,0x01,
         (byte)0x95,0x03,0x75,0x01,(byte)0x81,0x02,
         (byte)0x95,0x01,0x75,0x05,(byte)0x81,0x03,
@@ -94,7 +94,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         LinearLayout actions = new LinearLayout(this); actions.setOrientation(0); root.addView(actions,lp(-1,dp(48),0,dp(18)));
         Button left = button("ЛЕВЫЙ КЛИК",0xFF293650), right = button("ПРАВЫЙ КЛИК",0xFF293650);
         actions.addView(left,new LinearLayout.LayoutParams(0,-1,1)); actions.addView(space(dp(8))); actions.addView(right,new LinearLayout.LayoutParams(0,-1,1));
-        left.setOnClickListener(v -> sendMouse(1,0,0,0)); right.setOnClickListener(v -> sendMouse(2,0,0,0));
+        left.setOnClickListener(v -> { sendMouse(1,0,0,0); sendMouse(0,0,0,0); }); right.setOnClickListener(v -> { sendMouse(2,0,0,0); sendMouse(0,0,0,0); });
         TextView settings = label("НАСТРОЙКИ КУРСОРА",12,0xFF8EA7FF); root.addView(settings,lp(0,dp(35),0,dp(4)));
         addSlider("Чувствительность",1,5,1.4f, value -> sensitivity=value);
         addSlider("Сглаживание",0,0.9f,.35f,value -> smooth=value);
