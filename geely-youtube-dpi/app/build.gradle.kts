@@ -40,6 +40,7 @@ android {
 dependencies {
     implementation("com.github.TeamNewPipe:NewPipeExtractor:v0.26.3")
     implementation("com.google.android.exoplayer:exoplayer-core:2.19.1")
+    implementation("com.google.android.exoplayer:exoplayer-dash:2.19.1")
     implementation("com.google.android.exoplayer:exoplayer-ui:2.19.1")
     implementation("com.google.android.exoplayer:extension-okhttp:2.19.1")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
