@@ -4,10 +4,12 @@ import org.schabi.newpipe.extractor.NewPipe
 import org.schabi.newpipe.extractor.ServiceList
 import org.schabi.newpipe.extractor.search.SearchInfo
 import org.schabi.newpipe.extractor.stream.StreamInfo
+import org.schabi.newpipe.extractor.kiosk.KioskInfo
 import java.util.concurrent.Executors
 import android.app.Activity
 import android.os.Bundle
 import android.graphics.Color
+import android.graphics.BitmapFactory
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
@@ -16,6 +18,10 @@ import android.widget.*
 import android.content.Context
 import android.content.Intent
 import android.util.Base64
+import java.net.HttpURLConnection
+import java.net.Proxy
+import java.net.InetSocketAddress
+import java.net.URL
 
 class MainActivity : Activity() {
     private lateinit var profileName: EditText
@@ -25,11 +31,13 @@ class MainActivity : Activity() {
     private lateinit var searchQuery: EditText
     private lateinit var searchResults: LinearLayout
     private lateinit var homeRecent: LinearLayout
+    private lateinit var homeFeed: LinearLayout
     private lateinit var libraryList: LinearLayout
     private lateinit var pageHost: FrameLayout
     private val pages = LinkedHashMap<String, View>()
     private val navButtons = LinkedHashMap<String, Button>()
     private val extractorExecutor = Executors.newSingleThreadExecutor()
+    private val thumbnailExecutor = Executors.newFixedThreadPool(3)
     private val prefs by lazy { getSharedPreferences("dpi_profiles", Context.MODE_PRIVATE) }
 
     private val defaultArgs = "-Ku -a3 -An -Kt,h -n vk.com -d1 -d3+s -s6+s -d9+s -s12+s -d15+s -s20+s -d25+s -s30+s -d35+s -r1+s -S -Mh,d -As -Kt,h -n vk.com -d1 -d3+s -s6+s -d9+s -s12+s -d15+s -s20+s -d25+s -d30+s -d35+s -S -Mh,d"
@@ -83,7 +91,10 @@ class MainActivity : Activity() {
         pages.forEach { (name, view) -> view.visibility = if (name == key) View.VISIBLE else View.GONE }
         navButtons.forEach { (name, button) -> button.alpha = if (name == key) 1f else 0.62f }
         if (key == "library") refreshHistory(libraryList)
-        if (key == "home") refreshHistory(homeRecent, 4)
+        if (key == "home") {
+            refreshHistory(homeRecent, 4)
+            if (ByeDpiService.isProxyRunning()) loadHomeFeed()
+        }
     }
 
     private fun buildHomePage(): View {
@@ -101,6 +112,13 @@ class MainActivity : Activity() {
         proxyCard.addView(label("Состояние: " + if (ByeDpiService.isProxyRunning()) "активен" else "не запущен", 14f, Color.LTGRAY))
         proxyCard.addView(actionButton("НАСТРОИТЬ BYEDPI") { showPage("profile") })
         addCard(body, proxyCard)
+
+        val feed = card()
+        feed.addView(label("РЕКОМЕНДАЦИИ YOUTUBE", 13f, Color.LTGRAY, true))
+        feed.addView(actionButton("ОБНОВИТЬ ЛЕНТУ") { loadHomeFeed() })
+        homeFeed = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        feed.addView(homeFeed)
+        addCard(body, feed)
 
         val recent = card()
         recent.addView(label("НЕДАВНО ПРОСМОТРЕНО", 13f, Color.LTGRAY, true))
@@ -262,6 +280,83 @@ class MainActivity : Activity() {
         }
     }
 
+    private fun addStreamCard(parent: LinearLayout, number: Int, title: String, url: String, thumbnailUrl: String) {
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(8), dp(7), dp(8), dp(7))
+            background = GradientDrawable().apply {
+                setColor(Color.rgb(35, 43, 55))
+                cornerRadius = dp(12).toFloat()
+            }
+        }
+        val image = ImageView(this).apply {
+            scaleType = ImageView.ScaleType.CENTER_CROP
+            setBackgroundColor(Color.rgb(55, 65, 80))
+        }
+        row.addView(image, LinearLayout.LayoutParams(dp(132), dp(76)))
+        val textColumn = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(10), 0, 0, 0)
+        }
+        textColumn.addView(label("${number}. ${title}", 14f, Color.WHITE, true))
+        textColumn.addView(label("YouTube · нажми для просмотра", 11f, Color.LTGRAY))
+        row.addView(textColumn, LinearLayout.LayoutParams(0, -2, 1f))
+        row.setOnClickListener { playYoutubeVideo(url, title) }
+        parent.addView(row, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(8) })
+        if (thumbnailUrl.isNotBlank()) loadThumbnail(thumbnailUrl, image)
+    }
+
+    private fun loadThumbnail(imageUrl: String, target: ImageView) {
+        target.tag = imageUrl
+        thumbnailExecutor.execute {
+            try {
+                val proxy = Proxy(Proxy.Type.SOCKS, InetSocketAddress("127.0.0.1", 1080))
+                val connection = URL(imageUrl).openConnection(proxy) as HttpURLConnection
+                connection.connectTimeout = 15000
+                connection.readTimeout = 15000
+                connection.instanceFollowRedirects = true
+                val bitmap = connection.inputStream.use { BitmapFactory.decodeStream(it) }
+                connection.disconnect()
+                if (bitmap != null) runOnUiThread {
+                    if (target.tag == imageUrl) target.setImageBitmap(bitmap)
+                }
+            } catch (_: Throwable) {
+                // Thumbnail failure must not block search or playback.
+            }
+        }
+    }
+
+    private fun loadHomeFeed() {
+        if (!ByeDpiService.isProxyRunning()) {
+            homeFeed.removeAllViews()
+            homeFeed.addView(label("Запусти ByeDPI, чтобы загрузить рекомендации.", 13f, Color.LTGRAY))
+            return
+        }
+        homeFeed.removeAllViews()
+        homeFeed.addView(label("Загружаем рекомендации…", 13f, Color.LTGRAY))
+        extractorExecutor.execute {
+            try {
+                val kiosk = ServiceList.YouTube.kioskList.defaultKioskExtractor()
+                kiosk.fetchPage()
+                val info = KioskInfo.getInfo(kiosk)
+                runOnUiThread {
+                    homeFeed.removeAllViews()
+                    info.relatedItems.forEachIndexed { index, item ->
+                        addStreamCard(homeFeed, index + 1, item.name, item.url,
+                            item.thumbnails.firstOrNull()?.url.orEmpty())
+                    }
+                    if (info.relatedItems.isEmpty()) homeFeed.addView(label("Лента пока не вернула видео.", 13f, Color.LTGRAY))
+                }
+            } catch (error: Throwable) {
+                runOnUiThread {
+                    homeFeed.removeAllViews()
+                    homeFeed.addView(label("Не удалось загрузить ленту: ${error.message ?: error.javaClass.simpleName}", 13f, Color.LTGRAY))
+                }
+            }
+        }
+    }
+
     private fun performYoutubeSearch() {
         val query = searchQuery.text.toString().trim()
         if (query.isEmpty()) {
@@ -281,13 +376,8 @@ class MainActivity : Activity() {
                 runOnUiThread {
                     searchResults.removeAllViews()
                     info.relatedItems.forEachIndexed { index, item ->
-                        val entry = actionButton("${index + 1}. ${item.name}") {
-                            playYoutubeVideo(item.url, item.name)
-                        }
-                        entry.gravity = Gravity.START or Gravity.CENTER_VERTICAL
-                        searchResults.addView(entry, LinearLayout.LayoutParams(-1, dp(62)).apply {
-                            bottomMargin = dp(5)
-                        })
+                        addStreamCard(searchResults, index + 1, item.name, item.url,
+                            item.thumbnails.firstOrNull()?.url.orEmpty())
                     }
                     status.text = "Найдено: ${info.relatedItems.size}"
                 }
@@ -390,6 +480,7 @@ class MainActivity : Activity() {
 
     override fun onDestroy() {
         extractorExecutor.shutdownNow()
+        thumbnailExecutor.shutdownNow()
         super.onDestroy()
     }
 }
