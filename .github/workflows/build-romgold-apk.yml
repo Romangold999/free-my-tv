@@ -78,8 +78,8 @@ jobs:
           cp FreeMyTV.apk FreeMyTV-Blue-Standalone.apk
       - name: Verify package identity and APK alignment
         run: |
-          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging FreeMyTV-Blue.apk | grep -E "^package:|^application-label:"
-          "$ANDROID_HOME/build-tools/34.0.0/zipalign" -c -v 4 FreeMyTV-Blue.apk
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging FreeMyTV-Blue-Standalone.apk | grep -E "^package:|^application-label:"
+          "$ANDROID_HOME/build-tools/34.0.0/zipalign" -c -v 4 FreeMyTV-Blue-Standalone.apk
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
