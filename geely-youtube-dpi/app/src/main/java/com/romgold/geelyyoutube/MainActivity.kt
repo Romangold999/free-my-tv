@@ -32,6 +32,7 @@ class MainActivity : Activity() {
     private lateinit var profileName: EditText
     private lateinit var arguments: EditText
     private lateinit var status: TextView
+    private lateinit var proxyState: TextView
     private lateinit var profilePicker: Spinner
     private lateinit var searchQuery: EditText
     private lateinit var searchResults: LinearLayout
@@ -105,6 +106,7 @@ class MainActivity : Activity() {
         if (key == "library") refreshHistory(libraryList)
         if (key == "subscriptions") refreshSubscriptions()
         if (key == "home") {
+            proxyState.text = "Состояние: " + if (ByeDpiService.isProxyRunning()) "активен" else "не запущен"
             refreshHistory(homeRecent, 4)
             if (ByeDpiService.isProxyRunning()) loadHomeFeed()
         }
@@ -122,7 +124,8 @@ class MainActivity : Activity() {
         val proxyCard = card()
         proxyCard.addView(label("СОЕДИНЕНИЕ", 13f, Color.LTGRAY, true))
         proxyCard.addView(label("Локальный SOCKS5: 127.0.0.1:1080", 16f, Color.WHITE, true))
-        proxyCard.addView(label("Состояние: " + if (ByeDpiService.isProxyRunning()) "активен" else "не запущен", 14f, Color.LTGRAY))
+        proxyState = label("Состояние: " + if (ByeDpiService.isProxyRunning()) "активен" else "не запущен", 14f, Color.LTGRAY)
+        proxyCard.addView(proxyState)
         proxyCard.addView(actionButton("НАСТРОИТЬ BYEDPI") { showPage("profile") })
         addCard(body, proxyCard)
 
