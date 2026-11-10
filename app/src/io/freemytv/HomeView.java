@@ -4668,7 +4668,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         float sw = Symbols.width(getContext(), symbol, size);
         float right = getWidth() - MARGIN * k;
         float maxText = Math.max(0, Math.min(720 * k, right - x - 620 * k));
-        String shown = TextUtils.ellipsize(weatherLine, lWeather, maxText, TextUtils.TruncateAt.END).toString();
+        String shown = TextUtils.ellipsize(weatherLine, new android.text.TextPaint(lWeather), maxText, TextUtils.TruncateAt.END).toString();
         float textWidth = lWeather.measureText(shown);
         float textX = right - sw - 16 * k - textWidth;
         c.drawText(shown, textX, base, lWeather);
