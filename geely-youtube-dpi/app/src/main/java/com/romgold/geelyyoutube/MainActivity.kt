@@ -4,6 +4,7 @@ import io.github.dovecoteescapee.byedpi.core.ByeDpiProxy
 import org.schabi.newpipe.extractor.NewPipe
 import org.schabi.newpipe.extractor.ServiceList
 import org.schabi.newpipe.extractor.search.SearchInfo
+import org.schabi.newpipe.extractor.stream.StreamInfo
 import java.util.concurrent.Executors
 
 import android.app.Activity
@@ -49,7 +50,7 @@ class MainActivity : Activity() {
                             text = "${index + 1}. ${item.name}"
                             isAllCaps = false
                             setOnClickListener {
-                                status.text = "Выбрано: ${item.name}\nСсылка: ${item.url}\nПроигрыватель подключается следующим этапом."
+                                playYoutubeVideo(item.url, item.name)
                             }
                         }
                         searchResults.addView(entry, LinearLayout.LayoutParams(-1, 68))
@@ -59,6 +60,33 @@ class MainActivity : Activity() {
             } catch (error: Throwable) {
                 runOnUiThread {
                     status.text = "Ошибка поиска: ${error.message ?: error.javaClass.simpleName}"
+                }
+            }
+        }
+    }
+
+    private fun playYoutubeVideo(url: String, title: String) {
+        if (!byeDpi.isRunning()) {
+            status.text = "Сначала запусти ByeDPI. Видео будет загружаться только через SOCKS5 127.0.0.1:1080."
+            return
+        }
+        status.text = "Получаем видеопоток: $title"
+        extractorExecutor.execute {
+            try {
+                val info = StreamInfo.getInfo(url)
+                val stream = info.videoStreams.firstOrNull { !it.isVideoOnly }
+                val streamUrl = stream?.content
+                if (streamUrl.isNullOrBlank()) {
+                    throw IllegalStateException("Не найден видеопоток со звуком в одном файле. Раздельные DASH-потоки пока не поддерживаются.")
+                }
+                runOnUiThread {
+                    status.text = "Открываем плеер: $title"
+                    startActivity(android.content.Intent(this, VideoPlayerActivity::class.java)
+                        .putExtra(VideoPlayerActivity.EXTRA_STREAM_URL, streamUrl))
+                }
+            } catch (error: Throwable) {
+                runOnUiThread {
+                    status.text = "Не удалось открыть видео: ${error.message ?: error.javaClass.simpleName}"
                 }
             }
         }
