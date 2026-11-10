@@ -181,3 +181,14 @@ Current immediate next task: implement and compile the embedded playback path, b
 - Search-result tap now requests `StreamInfo` from NewPipe Extractor, selects a muxed (audio+video) stream, then launches the embedded player.
 - This is an initial progressive/muxed playback path only. Separate DASH audio/video streams, adaptive quality, captions, live playback, thumbnails, and foreground-service proxy lifecycle are not implemented.
 - **Not yet verified:** compilation of this exact commit, extractor stream availability, real network routing end-to-end, video/audio playback, Android 14 runtime, or Android 5.0 runtime. CI must pass before calling this a playable alpha.
+
+
+## Verified build checkpoint — 2026-11-10 18:48 UTC
+
+- Branch head build commit: `1faf237ad7fb9120301e777ad120401d8d759076`.
+- GitHub Actions run `42878378593` completed successfully; `Build debug APK` and artifact upload both passed.
+- Artifact: `geely-youtube-debug-apk`, ID `13792368592`, size 7,722,298 bytes.
+- Build configuration checked: minSdk 21, targetSdk 28, ABI filters include `armeabi-v7a` and `arm64-v8a`.
+- This confirms compilation/package generation only; it does not prove device install, native ABI loading, extractor success, media routing or playback.
+- The app manifest was then updated to stop forcing landscape orientation on both activities, allowing phone rotation and responsive UI work. Version bumped to 0.2.0 / versionCode 2. A fresh CI build is required for those changes.
+- Current feature status remains a prototype: search results plus a first progressive/muxed-stream player path. Home feed, thumbnails, channels, subscriptions, history/library, account flow, DASH separate audio/video, foreground service and device tests remain outstanding.
