@@ -102,10 +102,14 @@ final class Backdrop {
             int[] night = darken(frost.clone(), 0.76f);
             int[] nightGlass = darken(glass, 0.56f);
             if (own) {
-                int[] sharp = reduce(out, GW, GH, 1, 1);
-                int[] lightBg = ramp(sharp.clone(), 0.82f, 0.45f, true), nightBg = ramp(sharp, 0.76f, 0.5f, false);
+                // Keep the actual wallpaper at full UI resolution. Previously the clock background was rebuilt
+                // from a 480x270 blurred copy and whitened heavily behind the clock/weather, making every photo look
+                // foggy. Text now sits over its own blue glass panel, so the photograph can stay crisp.
+                int[] sharp = new int[W * H];
+                out.getPixels(sharp, 0, W, 0, 0, W, H);
+                int[] nightBg = ramp(reduce(out, GW, GH, 1, 1), 0.58f, 0.42f, false);
                 out.recycle();
-                return new Backdrop(null, frost, null, wide, light, lightGlass, night, nightGlass, lightBg, nightBg, GW, GH);
+                return new Backdrop(null, frost, null, wide, light, lightGlass, night, nightGlass, sharp, nightBg, W, H);
             }
             out.recycle();
             return new Backdrop(null, frost, null, wide, light, lightGlass, night, nightGlass);
