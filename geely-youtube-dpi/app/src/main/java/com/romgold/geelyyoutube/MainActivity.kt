@@ -52,7 +52,7 @@ class MainActivity : Activity() {
     private val thumbnailExecutor = Executors.newFixedThreadPool(3)
     private val prefs by lazy { getSharedPreferences("dpi_profiles", Context.MODE_PRIVATE) }
 
-    private val defaultArgs = "-Ku -a3 -An -Kt,h -n vk.com -d1 -d3+s -s6+s -d9+s -s12+s -d15+s -s20+s -d25+s -s30+s -d35+s -r1+s -S -Mh,d -As -Kt,h -n vk.com -d1 -d3+s -s6+s -d9+s -s12+s -d15+s -s20+s -d25+s -d30+s -d35+s -S -Mh,d"
+    private val defaultArgs = "-Ku -a3 -An -Kt,h -n vk.com -d1 -d3+s -s6+s -d9+s -s12+s -d15+s -s20+s -d25+s -s30+s -d35+s -r1+s -S -Mh,d -As -Kt,h -n vk.com -d1 -d3+s -s6+s -d9+s -s12+s -d15+s -d20+s -d25+s -d30+s -d35+s -S -Mh,d"
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
