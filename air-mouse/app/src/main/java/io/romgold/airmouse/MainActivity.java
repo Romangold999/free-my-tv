@@ -81,8 +81,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         root.setBackgroundColor(Color.rgb(12,16,27));
         ScrollView scroll = new ScrollView(this); scroll.addView(root); setContentView(scroll);
         TextView brand = label("AIR MOUSE", 13, 0xFF8EA7FF); brand.setLetterSpacing(.18f); root.addView(brand);
-        TextView title = label("Пульт нового
-поколения", 30, Color.WHITE); title.setTypeface(Typeface.DEFAULT,Typeface.BOLD); root.addView(title, lp(0,dp(86),0,dp(18)));
+        TextView title = label("Пульт нового\\nпоколения", 30, Color.WHITE); title.setTypeface(Typeface.DEFAULT,Typeface.BOLD); root.addView(title, lp(0,dp(86),0,dp(18)));
         LinearLayout card = new LinearLayout(this); card.setOrientation(1); card.setPadding(dp(16),dp(15),dp(16),dp(15)); card.setBackground(round(0xFF1B2437,20)); root.addView(card,lp(-1,-2,0,dp(16)));
         status = label("Проверяем Bluetooth…",14,0xFFB8C5DC); card.addView(status);
         deviceName = label("Телевизор не подключён",18,Color.WHITE); deviceName.setTypeface(null,Typeface.BOLD); card.addView(deviceName,lp(0,dp(42),0,0));
