@@ -236,7 +236,7 @@ class MainActivity : Activity() {
                 .setAction(ByeDpiService.ACTION_START)
                 .putExtra(ByeDpiService.EXTRA_ARGUMENTS, arguments.text.toString())
             if (android.os.Build.VERSION.SDK_INT >= 26) startForegroundService(intent) else startService(intent)
-            status.text = "Запрос на запуск ByeDPI отправлен"
+            status.text = "ByeDPI: запускаем… ожидаю ответ службы"
         })
         local.addView(actionButton("ОСТАНОВИТЬ BYEDPI") {
             startService(Intent(this, ByeDpiService::class.java).setAction(ByeDpiService.ACTION_STOP))
@@ -703,6 +703,23 @@ class MainActivity : Activity() {
         loadProfile(prefs.getString("active_profile", "Мой профиль")!!)
         NewPipe.init(ByeDpiExtractorDownloader())
         showPage("home")
+    }
+
+    override fun onResume() {
+        super.onResume()
+        ByeDpiService.statusListener = { message ->
+            runOnUiThread {
+                if (::status.isInitialized) status.text = "ByeDPI: $message"
+                if (::proxyState.isInitialized) {
+                    proxyState.text = "Состояние: " + if (ByeDpiService.isProxyRunning()) "активен" else "не запущен"
+                }
+            }
+        }
+    }
+
+    override fun onPause() {
+        ByeDpiService.statusListener = null
+        super.onPause()
     }
 
     override fun onDestroy() {
