@@ -11,6 +11,7 @@ import org.schabi.newpipe.extractor.channel.tabs.ChannelTabInfo
 import org.schabi.newpipe.extractor.stream.StreamInfoItem
 import java.util.concurrent.Executors
 import android.app.Activity
+import android.app.AlertDialog
 import android.os.Bundle
 import android.graphics.Color
 import android.graphics.BitmapFactory
@@ -247,7 +248,39 @@ class MainActivity : Activity() {
         account.addView(label("АККАУНТ YOUTUBE", 13f, Color.LTGRAY, true))
         account.addView(label("Официальный безопасный вход Google пока не подключён. Пароли приложение не запрашивает и не хранит.", 14f, Color.rgb(255, 190, 110)))
         addCard(body, account)
+        addCard(body, actionButton("ЛИЦЕНЗИИ И ОТКРЫТЫЙ КОД") { showOpenSourceLicenses() })
         return scroll
+    }
+
+    private fun showOpenSourceLicenses() {
+        try {
+            val files = listOf(
+                "licenses/THIRD-PARTY-NOTICES.txt",
+                "licenses/GPL-3.0.txt",
+                "licenses/ByeDPI-MIT.txt"
+            )
+            val fullText = files.joinToString("\\n\\n") { file ->
+                assets.open(file).bufferedReader(Charsets.UTF_8).use { it.readText() }
+            }
+            val textView = TextView(this).apply {
+                text = fullText
+                textSize = 12f
+                setTextColor(Color.WHITE)
+                setTextIsSelectable(true)
+                setPadding(dp(16), dp(12), dp(16), dp(12))
+            }
+            val scroll = ScrollView(this).apply {
+                setBackgroundColor(Color.rgb(24, 30, 40))
+                addView(textView)
+            }
+            AlertDialog.Builder(this)
+                .setTitle("Лицензии открытого ПО")
+                .setView(scroll)
+                .setPositiveButton("Закрыть", null)
+                .show()
+        } catch (error: Throwable) {
+            status.text = "Не удалось открыть лицензии: ${error.message ?: error.javaClass.simpleName}"
+        }
     }
 
     private fun names(): MutableList<String> =
