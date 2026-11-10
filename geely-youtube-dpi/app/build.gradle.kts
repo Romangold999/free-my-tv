@@ -20,6 +20,7 @@ android {
     }
 
     compileOptions {
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -33,4 +34,10 @@ android {
             version = "3.22.1"
         }
     }
+}
+
+
+dependencies {
+    implementation("com.github.TeamNewPipe:NewPipeExtractor:v0.26.3")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs_nio:2.1.5")
 }
