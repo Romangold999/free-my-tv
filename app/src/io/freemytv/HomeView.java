@@ -4662,13 +4662,18 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             weatherLine = HomeData.degrees(wx.temp) + "  " + HomeData.condition(wx.code, wx.isDay) + "   "
                     + HomeData.highLow(wx, "  ");
         }
-        float size = 40 * k, base = L_WEATHER_BASE * k;
+        // Keep the weather as a compact right-hand companion to the clock, not a second line underneath it.
+        float size = 40 * k, base = L_CLOCK_BASE * k;
         String symbol = Symbols.weather(wx.code, wx.isDay);
         float sw = Symbols.width(getContext(), symbol, size);
-        Symbols.draw(getContext(), c, symbol, x + sw / 2, base - Ui.halfCap(lWeather), size, lWeather.getColor());
-        c.drawText(weatherLine, x + sw + 16 * k, base, lWeather);
+        float right = getWidth() - MARGIN * k;
+        float maxText = Math.max(0, Math.min(720 * k, right - x - 620 * k));
+        String shown = TextUtils.ellipsize(weatherLine, lWeather, maxText, TextUtils.TruncateAt.END).toString();
+        float textWidth = lWeather.measureText(shown);
+        float textX = right - sw - 16 * k - textWidth;
+        c.drawText(shown, textX, base, lWeather);
+        Symbols.draw(getContext(), c, symbol, right - sw / 2, base - Ui.halfCap(lWeather), size, lWeather.getColor());
     }
-
     /**
      * Recommendation card: the title's photo (already at the focused card size, so it stays sharp), rounded corners and
      * a soft shadow; when focused, it grows 5%, rises and lights up its border. Below it, the title (and on the large
