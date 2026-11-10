@@ -44,6 +44,8 @@ final class OnlinePhotos {
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
     private static volatile boolean fetching;
     private static volatile long lastFetch;
+    private static volatile Runnable readyCallback;
+    private static boolean rotationScheduled;
     private static File built, building;
     private static Backdrop cachedBackdrop;
 
@@ -83,7 +85,13 @@ final class OnlinePhotos {
 
     static synchronized Backdrop backdrop(Context context, Runnable ready) {
         Context c = context.getApplicationContext();
+        readyCallback = ready;
         ensure(c);
+        if (ready != null && !rotationScheduled) {
+            rotationScheduled = true;
+            long delay = ROTATE_MS - (System.currentTimeMillis() % ROTATE_MS) + 500;
+            MAIN.postDelayed(() -> { synchronized (OnlinePhotos.class) { rotationScheduled = false; } ready.run(); }, delay);
+        }
         List<File> images = files(c);
         if (images.isEmpty()) return cachedBackdrop;
         long slot = System.currentTimeMillis() / ROTATE_MS;
@@ -117,17 +125,20 @@ final class OnlinePhotos {
         fetching = true;
         lastFetch = now;
         WORKER.execute(() -> {
+            int added = 0;
             try {
-                fetch(c, existing);
+                added = fetch(c, existing);
             } catch (Exception e) {
                 AppLog.w("commons photos: fetch: " + e.getMessage());
             } finally {
                 fetching = false;
+                Runnable callback = readyCallback;
+                if (added > 0 && callback != null) MAIN.post(callback);
             }
         });
     }
 
-    private static void fetch(Context c, List<File> existing) throws Exception {
+    private static int fetch(Context c, List<File> existing) throws Exception {
         String term = SEARCHES[(int) ((System.currentTimeMillis() / REFRESH_MS) % SEARCHES.length)];
         String query = "filemime:jpeg " + term;
         String api = "https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrlimit=30&gsrsearch="
@@ -135,7 +146,7 @@ final class OnlinePhotos {
                 + "&prop=imageinfo&iiprop=url%7Csize%7Cextmetadata&iiurlwidth=3840&format=json";
         JSONObject root = new JSONObject(request(api, 30_000));
         JSONObject pages = root.optJSONObject("query") == null ? null : root.getJSONObject("query").optJSONObject("pages");
-        if (pages == null) return;
+        if (pages == null) return 0;
 
         JSONArray credits = readCredits(c);
         int saved = 0;
@@ -187,6 +198,7 @@ final class OnlinePhotos {
         }
         writeCredits(c, credits);
         trim(c);
+        return saved;
     }
 
     private static String clean(JSONObject object, String key) {
