@@ -43,8 +43,8 @@ jobs:
       - name: Publish direct APK release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: airmouse-bluetooth-v1.0.0-20261110
-          name: Air Mouse Bluetooth v1.0.0
+          tag_name: airmouse-bluetooth-v1.0.1-20261110
+          name: Air Mouse Bluetooth v1.0.1
           files: release/AirMouse-Bluetooth.apk
           make_latest: false
           generate_release_notes: false
