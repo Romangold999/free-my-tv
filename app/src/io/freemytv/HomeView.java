@@ -2227,7 +2227,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         tmp.set(left - 12 * k, r.top + 70 * k, r.left + 390 * k, r.bottom - 24 * k);
         fill.setShader(new LinearGradient(tmp.left, tmp.top, tmp.right, tmp.bottom,
                 tone(0xD91C3D69, 0xD925416A), tone(0xB90D2346, 0xB9182B49), Shader.TileMode.CLAMP));
-        fill.setColor(Color.WHITE);
+        fill.setColor(0xFFFFFFFF);
         c.drawRoundRect(tmp, 24 * k, 24 * k, fill);
         fill.setShader(null);
 
