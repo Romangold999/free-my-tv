@@ -926,6 +926,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         lTip.setTextAlign(Paint.Align.CENTER);
         lDate = Ui.text(Ui.semibold, 34 * k, L_DIM);
         lClock = Ui.numbers(Ui.light, 200 * k, L_INK);
+        lDate.setShadowLayer(10 * k, 0, 2 * k, 0x66000000);
+        lClock.setShadowLayer(16 * k, 0, 3 * k, 0x70000000);
         lClock.setLetterSpacing(-0.01f);
         lWeather = Ui.text(Ui.medium, 34 * k, L_DIM);
         lClockQuote = Ui.numbers(Ui.medium, 28 * k, L_DIM);
@@ -1398,20 +1400,46 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         return onLight + (onDark - onLight) * dark();
     }
 
-    /** Text colors for the current night value (dark by day, white at night). */
+    /** Pick text ink from the actual wallpaper luminance, not only the day/night clock. */
+    private int adaptiveInk() {
+        if (bgTo == null) return tone(L_INK, WHITE);
+        Bitmap sample = night > 0.5f ? bgTo.nightImage : bgTo.lightImage;
+        if (sample == null || sample.isRecycled()) return tone(L_INK, WHITE);
+        long sum = 0;
+        int count = 0;
+        int x0 = Math.max(0, Math.round(sample.getWidth() * 0.035f));
+        int x1 = Math.min(sample.getWidth() - 1, Math.round(sample.getWidth() * 0.48f));
+        int y0 = Math.max(0, Math.round(sample.getHeight() * 0.12f));
+        int y1 = Math.min(sample.getHeight() - 1, Math.round(sample.getHeight() * 0.53f));
+        for (int y = y0; y <= y1; y += Math.max(1, (y1 - y0) / 10)) {
+            for (int x = x0; x <= x1; x += Math.max(1, (x1 - x0) / 14)) {
+                int p = sample.getPixel(x, y);
+                sum += 2126L * ((p >> 16) & 255) + 7152L * ((p >> 8) & 255) + 722L * (p & 255);
+                count++;
+            }
+        }
+        float luminance = count == 0 ? 0.5f : sum / (count * 10000000f);
+        return luminance > 0.52f ? 0xFF171719 : 0xFFFFFFFF;
+    }
+
+    /** Text colors follow the wallpaper; shadows preserve contrast over detailed photographs. */
     private void applyTone() {
-        lTitle.setColor(tone(L_INK, WHITE));
-        lTab.setColor(tone(L_DIM, 0xFF8E8E93));
-        lTabOn.setColor(tone(L_INK, WHITE));
-        lCardTitle.setColor(tone(L_INK, WHITE));
-        lCardMeta.setColor(tone(L_DIM, 0xFF98989D));
-        lQuote.setColor(tone(L_FAINT, 0xB8FFFFFF));
-        lTip.setColor(tone(L_INK, WHITE));
-        lDate.setColor(tone(L_DIM, 0xFF98989D));
-        lClock.setColor(tone(L_INK, WHITE));
-        lWeather.setColor(tone(L_DIM, 0xFF98989D));
-        lClockQuote.setColor(tone(L_DIM, 0xFF98989D));
-        staleQuote.setColor(tone(L_FAINT, 0x99FFFFFF));
+        int ink = adaptiveInk();
+        boolean lightInk = ink == 0xFFFFFFFF;
+        int dim = lightInk ? 0xFFE2E5EA : 0xFF55565C;
+        int faint = lightInk ? 0xFFC5CAD2 : 0xFF777980;
+        lTitle.setColor(ink);
+        lTab.setColor(dim);
+        lTabOn.setColor(ink);
+        lCardTitle.setColor(ink);
+        lCardMeta.setColor(dim);
+        lQuote.setColor(faint);
+        lTip.setColor(ink);
+        lDate.setColor(dim);
+        lClock.setColor(ink);
+        lWeather.setColor(dim);
+        lClockQuote.setColor(dim);
+        staleQuote.setColor(faint);
         if (continueMode()) applyWatchContrast();
     }
 
@@ -4695,24 +4723,35 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         c.drawText(dateText, x - Ui.leftBearing(lDate, dateText), L_DATE_BASE * k, lDate);
         c.drawText(clockText, x - Ui.leftBearing(lClock, clockText), L_CLOCK_BASE * k, lClock);
 
-        // The full weather dashboard sits below the clock, not squeezed into its right-hand side.
+        // Compact weather capsule: the large dashboard belongs in the drawer, not under the home clock.
         HomeData.Weather wx = data.weather;
         if (!Prefs.weather() || Double.isNaN(wx.temp)) return;
-        clockWeatherCard.set(80 * k, 466 * k, (CONTENT_R - 80) * k, 792 * k);
-        float pulse = 0.5f + 0.5f * (float) Math.sin(SystemClock.uptimeMillis() / 2200.0);
-        fill.setShader(new LinearGradient(clockWeatherCard.left, clockWeatherCard.top,
-                clockWeatherCard.right, clockWeatherCard.bottom,
-                new int[] {0xD91A3B68, 0xC911294B, 0xB90A1C36},
-                new float[] {0f, 0.58f, 1f}, Shader.TileMode.CLAMP));
+        refreshDrawerText();
+        float left = 82 * k, top = 466 * k, height = 112 * k;
+        clockWeatherCard.set(left, top, left + 780 * k, top + height);
+        fill.setShader(new LinearGradient(left, top, left + 780 * k, top + height,
+                new int[] {0xA91A2638, 0x8C111923}, null, Shader.TileMode.CLAMP));
         fill.setColor(0xFFFFFFFF);
-        c.drawRoundRect(clockWeatherCard, 30 * k, 30 * k, fill);
+        c.drawRoundRect(clockWeatherCard, 28 * k, 28 * k, fill);
         fill.setShader(null);
         halo.setStyle(Paint.Style.STROKE);
-        halo.setStrokeWidth(1.5f * k);
-        halo.setColor(Ui.alpha(0xFF9CCBFF, 0.12f + 0.10f * pulse));
-        c.drawRoundRect(clockWeatherCard, 30 * k, 30 * k, halo);
+        halo.setStrokeWidth(1.2f * k);
+        halo.setColor(0x35FFFFFF);
+        c.drawRoundRect(clockWeatherCard, 28 * k, 28 * k, halo);
         halo.setStyle(Paint.Style.FILL);
-        drawWeather(c, clockWeatherCard);
+        float cy = top + height * 0.5f;
+        Symbols.draw(getContext(), c, Symbols.weather(wx.code, wx.isDay), left + 52 * k, cy, 48 * k, 0xFFFFFFFF);
+        bigTemp.setTextSize(54 * k);
+        bigTemp.setColor(0xFFFFFFFF);
+        bigTemp.setShadowLayer(8 * k, 0, 1 * k, 0x99000000);
+        c.drawText(nowTemp, left + 94 * k, cy + 18 * k, bigTemp);
+        cardText.setColor(0xF4FFFFFF);
+        cardDim.setColor(0xC9E3ECF8);
+        cardText.setTextSize(25 * k);
+        cardDim.setTextSize(20 * k);
+        c.drawText(HomeData.condition(wx.code, wx.isDay), left + 235 * k, cy - 2 * k, cardText);
+        c.drawText(highLow, left + 235 * k, cy + 29 * k, cardDim);
+        bigTemp.clearShadowLayer();
     }
     /**
      * Recommendation card: the title's photo (already at the focused card size, so it stays sharp), rounded corners and
