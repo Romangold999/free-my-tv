@@ -107,7 +107,7 @@ final class Backdrop {
                 // foggy. Text now sits over its own blue glass panel, so the photograph can stay crisp.
                 int[] sharp = new int[W * H];
                 out.getPixels(sharp, 0, W, 0, 0, W, H);
-                int[] nightBg = ramp(reduce(out, GW, GH, 1, 1), 0.58f, 0.42f, false);
+                int[] nightBg = darken(sharp.clone(), 0.58f);
                 out.recycle();
                 return new Backdrop(null, frost, null, wide, light, lightGlass, night, nightGlass, sharp, nightBg, W, H);
             }
