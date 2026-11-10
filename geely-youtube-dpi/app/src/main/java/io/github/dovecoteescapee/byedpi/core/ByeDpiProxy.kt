@@ -24,6 +24,15 @@ class ByeDpiProxy {
         synchronized(this) {
             if (socketFd >= 0) return true
 
+            // Native parameters are global. Reclaim them only after the previous
+            // event-loop worker has fully exited.
+            val previousWorker = worker
+            if (previousWorker != null) {
+                if (previousWorker.isAlive) return false
+                jniResetProxyState()
+                worker = null
+            }
+
             val parsed = shellSplit(commandLine)
             if (parsed.isEmpty()) return false
             val args = arrayOf("ciadpi") + parsed
@@ -38,7 +47,8 @@ class ByeDpiProxy {
                     // These fields are volatile. Do not take the monitor here:
                     // stopProxy joins this worker while holding that monitor.
                     if (socketFd == fd) socketFd = -1
-                    if (worker === Thread.currentThread()) worker = null
+                    // Keep the Thread reference until stop/start reaps it and
+                    // resets the native global parameters after event_loop exits.
                 }
             }, "ByeDPI-native-proxy")
             nativeWorker.isDaemon = true
@@ -81,13 +91,20 @@ class ByeDpiProxy {
     @Synchronized
     fun stopProxy(): Boolean {
         val fd = socketFd
-        if (fd < 0) return false
-        val currentWorker = worker
-        val result = jniStopProxy(fd)
-        socketFd = -1
-        currentWorker?.join(1500)
-        if (worker === currentWorker) worker = null
-        return result == 0
+        val currentWorker = worker ?: return false
+
+        val result = if (fd >= 0) jniStopProxy(fd) else 0
+        if (fd >= 0) socketFd = -1
+
+        // The native event loop must finish before reset_params() frees its
+        // global buffers. Never clean up native state while that thread is live.
+        currentWorker.join(3000)
+        val stopped = !currentWorker.isAlive
+        if (stopped) {
+            jniResetProxyState()
+            if (worker === currentWorker) worker = null
+        }
+        return stopped && (fd < 0 || result == 0)
     }
 
     fun isRunning(): Boolean = socketFd >= 0
@@ -139,4 +156,5 @@ class ByeDpiProxy {
     private external fun jniCreateSocketWithCommandLine(args: Array<String>): Int
     private external fun jniStartProxy(fd: Int): Int
     private external fun jniStopProxy(fd: Int): Int
+    private external fun jniResetProxyState()
 }
