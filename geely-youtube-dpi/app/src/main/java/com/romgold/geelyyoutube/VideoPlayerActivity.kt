@@ -11,6 +11,7 @@ import com.google.android.exoplayer2.Player
 import com.google.android.exoplayer2.source.DefaultMediaSourceFactory
 import com.google.android.exoplayer2.source.MergingMediaSource
 import com.google.android.exoplayer2.source.ProgressiveMediaSource
+import com.google.android.exoplayer2.source.dash.DashMediaSource
 import com.google.android.exoplayer2.ui.PlayerView
 import com.google.android.exoplayer2.ext.okhttp.OkHttpDataSource
 import okhttp3.OkHttpClient
@@ -22,6 +23,7 @@ class VideoPlayerActivity : Activity() {
     private var player: ExoPlayer? = null
     private lateinit var playerView: PlayerView
     private var streamUrl: String? = null
+    private var dashUrl: String? = null
     private var audioUrl: String? = null
     private var playbackPosition: Long = 0L
     private var shouldPlayWhenReady: Boolean = true
@@ -36,8 +38,9 @@ class VideoPlayerActivity : Activity() {
                 or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION)
 
         streamUrl = intent.getStringExtra(EXTRA_STREAM_URL)
+        dashUrl = intent.getStringExtra(EXTRA_DASH_URL)
         audioUrl = intent.getStringExtra(EXTRA_AUDIO_URL)
-        if (streamUrl.isNullOrBlank()) {
+        if (streamUrl.isNullOrBlank() && dashUrl.isNullOrBlank()) {
             Toast.makeText(this, "Ссылка на видео не получена", Toast.LENGTH_LONG).show()
             finish()
             return
@@ -70,14 +73,16 @@ class VideoPlayerActivity : Activity() {
             .build()
         val dataSourceFactory = OkHttpDataSource.Factory(client)
         val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory)
-        val videoItem = MediaItem.fromUri(streamUrl!!)
-        val mediaSource = if (!audioUrl.isNullOrBlank()) {
-            val progressiveFactory = ProgressiveMediaSource.Factory(dataSourceFactory)
-            val videoSource = progressiveFactory.createMediaSource(videoItem)
-            val audioSource = progressiveFactory.createMediaSource(MediaItem.fromUri(audioUrl!!))
-            MergingMediaSource(videoSource, audioSource)
-        } else {
-            mediaSourceFactory.createMediaSource(videoItem)
+        val mediaSource = when {
+            !dashUrl.isNullOrBlank() ->
+                DashMediaSource.Factory(dataSourceFactory).createMediaSource(MediaItem.fromUri(dashUrl!!))
+            !audioUrl.isNullOrBlank() -> {
+                val progressiveFactory = ProgressiveMediaSource.Factory(dataSourceFactory)
+                val videoSource = progressiveFactory.createMediaSource(MediaItem.fromUri(streamUrl!!))
+                val audioSource = progressiveFactory.createMediaSource(MediaItem.fromUri(audioUrl!!))
+                MergingMediaSource(videoSource, audioSource)
+            }
+            else -> mediaSourceFactory.createMediaSource(MediaItem.fromUri(streamUrl!!))
         }
 
         player = ExoPlayer.Builder(this)
@@ -123,6 +128,7 @@ class VideoPlayerActivity : Activity() {
 
     companion object {
         const val EXTRA_STREAM_URL = "stream_url"
+        const val EXTRA_DASH_URL = "dash_manifest_url"
         const val EXTRA_AUDIO_URL = "audio_stream_url"
         private const val STATE_POSITION = "playback_position"
         private const val STATE_PLAY_WHEN_READY = "play_when_ready"
