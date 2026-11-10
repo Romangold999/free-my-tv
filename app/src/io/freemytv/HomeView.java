@@ -2219,48 +2219,71 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
 
     private void drawWeather(Canvas c, RectF r) {
         refreshDrawerText();
-        float x = r.left + 34 * k;
-        c.drawText(weatherTitle, x, r.top + 54 * k, cardTitle);
         HomeData.Weather wx = textWeather;
+        float left = r.left + 34 * k, right = r.right - 30 * k;
+        float top = r.top + 44 * k;
+
+        // Deep-blue glass accents: a quiet luminous panel behind the live condition.
+        tmp.set(left - 12 * k, r.top + 70 * k, r.left + 390 * k, r.bottom - 24 * k);
+        fill.setShader(new LinearGradient(tmp.left, tmp.top, tmp.right, tmp.bottom,
+                tone(0xD91C3D69, 0xD925416A), tone(0xB90D2346, 0xB9182B49), Shader.TileMode.CLAMP));
+        fill.setColor(Color.WHITE);
+        c.drawRoundRect(tmp, 24 * k, 24 * k, fill);
+        fill.setShader(null);
+
+        c.drawText(weatherTitle, left, top, cardTitle);
         if (Double.isNaN(wx.temp)) {
-            c.drawText(Ui.tr("No weather data right now."), x, r.top + 120 * k, cardDim);
+            c.drawText(Ui.tr("No weather data right now."), left, r.top + 150 * k, cardDim);
             return;
         }
+
         String symbol = Symbols.weather(wx.code, wx.isDay);
-        float sw = Symbols.width(getContext(), symbol, 52 * k);
-        Symbols.draw(getContext(), c, symbol, x + sw / 2, r.top + 132 * k, 52 * k, drawerInk(0.95f));
-        c.drawText(nowTemp, x + sw + 18 * k - Ui.leftBearing(bigTemp, nowTemp), r.top + 170 * k, bigTemp);
-        c.drawText(HomeData.condition(wx.code, wx.isDay), x, r.top + 220 * k, cardText);
-        c.drawText(highLow, x, r.top + 258 * k, cardDim);
-        float split = r.left + 392 * k;
-        fill.setShader(null);
-        fill.setColor(tone(0x1A000000, 0x24FFFFFF));
-        c.drawRoundRect(split - k, r.top + 34 * k, split + k, r.bottom - 34 * k, k, k, fill);
-        float hx = split + 30 * k;
-        if (textDays) {
-            float hw = (r.right - 30 * k - hx) / 5;
-            for (int i = 0; i < wx.days.size() && i < 5; i++) {
-                float hc = hx + hw * (i + 0.5f);
-                c.drawText(dayText[i], hc, r.top + 96 * k, hourPaint);
-                Symbols.draw(getContext(), c, Symbols.weather(wx.dayCode.get(i), true), hc, r.top + 142 * k, 30 * k, drawerInk(0.9f));
-                // The high, then the low dimmed, centered together (closer than the next day, so the pairs read apart).
-                float maxW = hourTemp.measureText(dayMaxText[i]), minW = dayLow.measureText(dayMinText[i]), gap = 6 * k;
-                float left = hc - (maxW + gap + minW) / 2;
-                c.drawText(dayMaxText[i], left + maxW / 2, r.top + 196 * k, hourTemp);
-                c.drawText(dayMinText[i], left + maxW + gap + minW / 2, r.top + 196 * k, dayLow);
-            }
-        } else {
-            float hw = (r.right - 30 * k - hx) / 6;
-            for (int i = 0; i < wx.hours.size() && i < 6; i++) {
-                float hc = hx + hw * (i + 0.5f);
-                c.drawText(hourText[i], hc, r.top + 96 * k, hourPaint);
-                Symbols.draw(getContext(), c, Symbols.weather(wx.hourCode.get(i), wx.hourDay.get(i)), hc, r.top + 142 * k, 30 * k, drawerInk(0.9f));
-                c.drawText(hourTempText[i], hc, r.top + 196 * k, hourTemp);
+        float iconSize = 76 * k;
+        Symbols.draw(getContext(), c, symbol, left + 52 * k, r.top + 164 * k, iconSize, 0xFFFFFFFF);
+        bigTemp.setTextSize(88 * k);
+        bigTemp.setColor(0xFFFFFFFF);
+        c.drawText(nowTemp, left + 112 * k - Ui.leftBearing(bigTemp, nowTemp), r.top + 164 * k, bigTemp);
+        bigTemp.setTextSize(72 * k);
+        cardText.setColor(0xF2FFFFFF);
+        cardDim.setColor(0xB8DCEBFF);
+        c.drawText(HomeData.condition(wx.code, wx.isDay), left + 24 * k, r.top + 218 * k, cardText);
+        c.drawText(highLow, left + 24 * k, r.top + 254 * k, cardDim);
+
+        // Forecast strip: the selected setting controls hours vs. days, preserving the existing data source.
+        float forecastLeft = r.left + 420 * k;
+        float available = right - forecastLeft;
+        int count = textDays ? Math.min(5, wx.days.size()) : Math.min(6, wx.hours.size());
+        if (count > 0) {
+            float gap = 9 * k;
+            float itemW = (available - gap * (count - 1)) / count;
+            for (int i = 0; i < count; i++) {
+                float x = forecastLeft + i * (itemW + gap);
+                tmp.set(x, r.top + 80 * k, x + itemW, r.top + 218 * k);
+                fill.setShader(null);
+                fill.setColor(tone(0x263C75B8, 0x334D82BD));
+                c.drawRoundRect(tmp, 16 * k, 16 * k, fill);
+                float cx = tmp.centerX();
+                if (textDays) {
+                    c.drawText(dayText[i], cx, r.top + 106 * k, hourPaint);
+                    Symbols.draw(getContext(), c, Symbols.weather(wx.dayCode.get(i), true), cx, r.top + 151 * k,
+                            30 * k, 0xFFEAF4FF);
+                    float pair = hourTemp.measureText(dayMaxText[i]) + 5 * k + dayLow.measureText(dayMinText[i]);
+                    float base = r.top + 190 * k;
+                    c.drawText(dayMaxText[i], cx - pair / 2 + hourTemp.measureText(dayMaxText[i]) / 2, base, hourTemp);
+                    c.drawText(dayMinText[i], cx + pair / 2 - dayLow.measureText(dayMinText[i]) / 2, base, dayLow);
+                } else {
+                    c.drawText(hourText[i], cx, r.top + 106 * k, hourPaint);
+                    Symbols.draw(getContext(), c, Symbols.weather(wx.hourCode.get(i), wx.hourDay.get(i)), cx,
+                            r.top + 151 * k, 30 * k, 0xFFEAF4FF);
+                    c.drawText(hourTempText[i], cx, r.top + 190 * k, hourTemp);
+                }
             }
         }
-        float sx = hx, base = r.top + 258 * k;
-        if (wx.sunrise != 0) sx = sunItem(c, "sunrise", sunriseText, sx, base) + 36 * k;
-        if (wx.sunset != 0) sunItem(c, "sunset", sunsetText, sx, base);
+        // Sunrise and sunset remain real timestamps from the forecast, not decorative clock values.
+        float sunY = r.bottom - 28 * k;
+        float sunX = forecastLeft + 4 * k;
+        if (wx.sunrise != 0) sunX = sunItem(c, "sunrise", sunriseText, sunX, sunY) + 34 * k;
+        if (wx.sunset != 0) sunItem(c, "sunset", sunsetText, sunX, sunY);
     }
 
     private void refreshDrawerText() {
