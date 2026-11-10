@@ -42,6 +42,11 @@ jobs:
           git -C third_party/ByeDPIAndroid submodule update --init --recursive
           mkdir -p geely-youtube-dpi/app/src/main/cpp/byedpi
           cp -a third_party/ByeDPIAndroid/app/src/main/cpp/byedpi/. geely-youtube-dpi/app/src/main/cpp/byedpi/
+      - name: Verify original ByeDPI baseline consistency
+        run: |
+          EXPECTED='-Ku -a3 -An -Kt,h -n vk.com -d1 -d3+s -s6+s -d9+s -s12+s -d15+s -s20+s -d25+s -s30+s -d35+s -r1+s -S -Mh,d -As -Kt,h -n vk.com -d1 -d3+s -s6+s -d9+s -s12+s -d15+s -d20+s -d25+s -d30+s -d35+s -S -Mh,d'
+          test "$(cat geely-youtube-dpi/profiles/user-supplied-youtube.txt)" = "$EXPECTED"
+          grep -Fq "private val defaultArgs = \"$EXPECTED\"" geely-youtube-dpi/app/src/main/java/com/romgold/geelyyoutube/MainActivity.kt
       - name: Build debug APK
         working-directory: geely-youtube-dpi
         run: gradle --no-daemon assembleDebug
