@@ -53,9 +53,11 @@ Java_io_github_dovecoteescapee_byedpi_core_ByeDpiProxy_jniCreateSocketWithComman
         return -1;
     }
 
+    NOT_EXIT = 1;
     int fd = listen_socket((struct sockaddr_ina *)&params.laddr);
     if (fd < 0) {
         uniperror("listen_socket");
+        reset_params();
         return -1;
     }
     LOG(LOG_S, "listen_socket, fd: %d", fd);
@@ -270,7 +272,6 @@ Java_io_github_dovecoteescapee_byedpi_core_ByeDpiProxy_jniStartProxy(
         __attribute__((unused)) jobject thiz,
         jint fd) {
     LOG(LOG_S, "start_proxy, fd: %d", fd);
-    NOT_EXIT = 1;
     if (event_loop(fd) < 0) {
         uniperror("event_loop");
         return get_e();
@@ -285,12 +286,20 @@ Java_io_github_dovecoteescapee_byedpi_core_ByeDpiProxy_jniStopProxy(
         jint fd) {
     LOG(LOG_S, "stop_proxy, fd: %d", fd);
 
+    NOT_EXIT = 0;
     int res = shutdown(fd, SHUT_RDWR);
-    reset_params();
 
     if (res < 0) {
         uniperror("shutdown");
         return get_e();
     }
     return 0;
+}
+
+JNIEXPORT void JNICALL
+Java_io_github_dovecoteescapee_byedpi_core_ByeDpiProxy_jniResetProxyState(
+        __attribute__((unused)) JNIEnv *env,
+        __attribute__((unused)) jobject thiz) {
+    // Called only after the Java worker has exited its event loop.
+    reset_params();
 }
