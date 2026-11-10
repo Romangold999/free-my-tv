@@ -65,12 +65,122 @@ final class HomeData {
     private static final String WEATHER_QUERY = "&current=temperature_2m,weather_code,is_day&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset,weather_code"
             + "&hourly=temperature_2m,weather_code,is_day&timezone=auto&forecast_days=6&forecast_hours=48";
 
+    private static String coordinate(String value, String fallback, double min, double max) {
+        try {
+            double n = Double.parseDouble(value.trim());
+            if (Double.isFinite(n) && n >= min && n <= max) return String.format(Locale.US, "%.5f", n);
+        } catch (Exception ignored) {}
+        return fallback;
+    }
+
+    private static String weatherLatitude() { return coordinate(Prefs.latitude(), Place.latitude(), -90, 90); }
+    private static String weatherLongitude() { return coordinate(Prefs.longitude(), Place.longitude(), -180, 180); }
+
     private static String weatherPlace() {
-        return Prefs.latitude() + "," + Prefs.longitude();
+        return weatherLatitude() + "," + weatherLongitude();
     }
 
     private static String weatherUrl() {
-        return "https://api.open-meteo.com/v1/forecast?latitude=" + Prefs.latitude() + "&longitude=" + Prefs.longitude() + WEATHER_QUERY;
+        return "https://api.open-meteo.com/v1/forecast?latitude=" + weatherLatitude() + "&longitude=" + weatherLongitude() + WEATHER_QUERY;
+    }
+
+    /** Open-Meteo first; MET Norway is a free no-key fallback for TVs/networks that cannot reach Open-Meteo. */
+    private static String fetchWeather() throws Exception {
+        try {
+            return get(weatherUrl());
+        } catch (Exception primary) {
+            AppLog.w("weather: Open-Meteo failed (" + primary.getMessage() + "); trying MET Norway");
+            try {
+                return metNoWeather();
+            } catch (Exception fallback) {
+                fallback.addSuppressed(primary);
+                throw fallback;
+            }
+        }
+    }
+
+    private static String metNoWeather() throws Exception {
+        String url = "https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=" + weatherLatitude()
+                + "&lon=" + weatherLongitude();
+        JSONObject response = new JSONObject(get(url));
+        JSONArray series = response.getJSONObject("properties").getJSONArray("timeseries");
+        long now = System.currentTimeMillis();
+        TimeZone zone = TimeZone.getDefault();
+        SimpleDateFormat dayFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+        dayFormat.setTimeZone(zone);
+        String today = dayFormat.format(new java.util.Date(now));
+        long bestPast = Long.MIN_VALUE;
+        JSONObject currentPoint = null;
+        double high = -Double.MAX_VALUE, low = Double.MAX_VALUE;
+        JSONArray times = new JSONArray(), temps = new JSONArray(), codes = new JSONArray(), days = new JSONArray();
+        for (int i = 0; i < series.length(); i++) {
+            JSONObject point = series.getJSONObject(i);
+            long at = java.time.Instant.parse(point.getString("time")).toEpochMilli();
+            JSONObject data = point.getJSONObject("data");
+            JSONObject details = data.getJSONObject("instant").getJSONObject("details");
+            double temp = details.getDouble("air_temperature");
+            JSONObject next = data.optJSONObject("next_1_hours");
+            if (next == null) next = data.optJSONObject("next_6_hours");
+            JSONObject summary = next == null ? null : next.optJSONObject("summary");
+            String symbol = summary == null ? "" : summary.optString("symbol_code", "");
+            int code = metNoCode(symbol);
+            boolean isDay = symbol.endsWith("_day") || symbol.endsWith("_polartwilight");
+            if (at <= now && at > bestPast) { bestPast = at; currentPoint = point; }
+            if (dayFormat.format(new java.util.Date(at)).equals(today)) {
+                high = Math.max(high, temp);
+                low = Math.min(low, temp);
+            }
+            if (at >= now && times.length() < 48) {
+                times.put(new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm", Locale.US) {{ setTimeZone(zone); }}.format(new java.util.Date(at)));
+                temps.put(temp); codes.put(code); days.put(isDay ? 1 : 0);
+            }
+        }
+        if (currentPoint == null) throw new IOException("MET Norway returned no current observation");
+        JSONObject currentData = currentPoint.getJSONObject("data");
+        JSONObject currentInstant = currentData.getJSONObject("instant").getJSONObject("details");
+        JSONObject currentNext = currentData.optJSONObject("next_1_hours");
+        if (currentNext == null) currentNext = currentData.optJSONObject("next_6_hours");
+        JSONObject currentSummary = currentNext == null ? null : currentNext.optJSONObject("summary");
+        String symbol = currentSummary == null ? "" : currentSummary.optString("symbol_code", "");
+        int currentCode = metNoCode(symbol);
+        boolean isDay = symbol.endsWith("_day") || symbol.endsWith("_polartwilight");
+        if (high == -Double.MAX_VALUE) high = currentInstant.getDouble("air_temperature");
+        if (low == Double.MAX_VALUE) low = currentInstant.getDouble("air_temperature");
+        JSONObject root = new JSONObject();
+        root.put("utc_offset_seconds", zone.getOffset(now) / 1000);
+        root.put("timezone", zone.getID());
+        JSONObject current = new JSONObject();
+        current.put("temperature_2m", currentInstant.getDouble("air_temperature"));
+        current.put("weather_code", currentCode);
+        current.put("is_day", isDay ? 1 : 0);
+        root.put("current", current);
+        JSONObject daily = new JSONObject();
+        daily.put("time", new JSONArray().put(today));
+        daily.put("temperature_2m_max", new JSONArray().put(high));
+        daily.put("temperature_2m_min", new JSONArray().put(low));
+        daily.put("weather_code", new JSONArray().put(currentCode));
+        daily.put("sunrise", new JSONArray().put(today + "T06:00"));
+        daily.put("sunset", new JSONArray().put(today + "T18:00"));
+        root.put("daily", daily);
+        JSONObject hourly = new JSONObject();
+        hourly.put("time", times); hourly.put("temperature_2m", temps);
+        hourly.put("weather_code", codes); hourly.put("is_day", days);
+        root.put("hourly", hourly);
+        return root.toString();
+    }
+
+    private static int metNoCode(String symbol) {
+        String s = symbol.toLowerCase(Locale.ROOT);
+        if (s.contains("thunder")) return 95;
+        if (s.contains("snow")) return s.contains("heavy") ? 75 : 71;
+        if (s.contains("sleet")) return 85;
+        if (s.contains("rain") || s.contains("shower")) return s.contains("heavy") ? 65 : 61;
+        if (s.contains("fog")) return 45;
+        if (s.contains("cloudy") && s.contains("partly")) return 2;
+        if (s.contains("cloudy")) return 3;
+        if (s.contains("fair")) return 1;
+        if (s.contains("clearsky")) return 0;
+        return 3;
     }
     private static final long PRICES_EVERY = 5 * 60_000L, WEATHER_EVERY = 30 * 60_000L;
     interface Listener { void onData(); }
@@ -291,7 +401,7 @@ final class HomeData {
             io.execute(() -> {
                 try {
                     String place = weatherPlace();
-                    String body = get(weatherUrl());
+                    String body = fetchWeather();
                     weather = parseWeather(body);
                     weatherAt = System.currentTimeMillis();
                     weatherFor = place;
@@ -441,11 +551,24 @@ final class HomeData {
 
     private static String get(String url) throws IOException {
         HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
-        c.setConnectTimeout(6000);
-        c.setReadTimeout(6000);
-        c.setRequestProperty("User-Agent", "FreeMyTV");
+        c.setConnectTimeout(12_000);
+        c.setReadTimeout(15_000);
+        c.setInstanceFollowRedirects(true);
+        c.setRequestProperty("User-Agent", "FreeMyTV/1.4 (Android TV home screen)");
+        c.setRequestProperty("Accept", "application/json");
         try {
-            if (c.getResponseCode() != 200) throw new IOException("HTTP " + c.getResponseCode());
+            int status = c.getResponseCode();
+            if (status != 200) {
+                InputStream error = c.getErrorStream();
+                String detail = "";
+                if (error != null) try (InputStream in = error) {
+                    ByteArrayOutputStream out = new ByteArrayOutputStream();
+                    byte[] b = new byte[2048]; int n;
+                    while ((n = in.read(b)) > 0 && out.size() < 8192) out.write(b, 0, n);
+                    detail = out.toString(StandardCharsets.UTF_8.name()).replaceAll("\\s+", " ").trim();
+                }
+                throw new IOException("HTTP " + status + (detail.isEmpty() ? "" : ": " + detail));
+            }
             try (InputStream in = c.getInputStream()) {
                 ByteArrayOutputStream out = new ByteArrayOutputStream();
                 byte[] buffer = new byte[8192];
