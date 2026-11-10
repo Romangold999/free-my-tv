@@ -1418,7 +1418,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
                 count++;
             }
         }
-        float luminance = count == 0 ? 0.5f : sum / (count * 10000000f);
+        float luminance = count == 0 ? 0.5f : sum / (count * 2550000f);
         return luminance > 0.52f ? 0xFF171719 : 0xFFFFFFFF;
     }
 
