@@ -35,10 +35,10 @@ class ByeDpiProxy {
                 try {
                     jniStartProxy(fd)
                 } finally {
-                    synchronized(this) {
-                        if (socketFd == fd) socketFd = -1
-                        if (worker === Thread.currentThread()) worker = null
-                    }
+                    // These fields are volatile. Do not take the monitor here:
+                    // stopProxy joins this worker while holding that monitor.
+                    if (socketFd == fd) socketFd = -1
+                    if (worker === Thread.currentThread()) worker = null
                 }
             }, "ByeDPI-native-proxy")
             nativeWorker.isDaemon = true
