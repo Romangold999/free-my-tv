@@ -118,7 +118,7 @@ public class MainActivity extends Activity implements SensorEventListener {
 
     private void startHid() {
         if (adapter==null || !adapter.isEnabled()) { refreshStatus("Включи Bluetooth на телефоне"); return; }
-        try { adapter.getProfileProxy(this,profileListener,BluetoothProfile.HID_DEVICE); }
+        try { boolean requested = adapter.getProfileProxy(this,profileListener,BluetoothProfile.HID_DEVICE); if (!requested) refreshStatus("Телефон не поддерживает Bluetooth HID в режиме мыши"); }
         catch(Exception e) { refreshStatus("Bluetooth HID недоступен на этом телефоне"); }
     }
 
@@ -127,7 +127,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         try {
             Set<BluetoothDevice> bonded=adapter.getBondedDevices();
             ArrayList<BluetoothDevice> list=new ArrayList<>(bonded);
-            if(list.isEmpty()){ refreshStatus("Сначала открой настройки Bluetooth и выполни сопряжение с телевизором"); startActivity(new Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS)); return; }
+            if(list.isEmpty()){ refreshStatus("Разреши обнаружение телефона, затем найди его в Bluetooth-меню телевизора"); Intent discoverable = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE); discoverable.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300); startActivity(discoverable); return; }
             String[] names=new String[list.size()]; for(int i=0;i<list.size();i++) names[i]=safeName(list.get(i));
             new AlertDialog.Builder(this).setTitle("Выбери телевизор").setItems(names,(d,which)->{
                 target=list.get(which);
