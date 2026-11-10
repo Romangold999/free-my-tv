@@ -323,3 +323,16 @@ Not implemented / not verified:
 - Playback, live streams, captions, sleep/resume and long-run stability remain untested on both devices.
 
 Release gate remains: actual install/launch, native library load, proxy operation, search, video+audio playback, fullscreen and sleep/resume on the real Android 5.0 head unit and Android 14 phone. Do not deliver as finished until these are verified.
+
+
+## Verified CI checkpoint — 2026-11-10 22:38 UTC
+
+- GitHub Actions run #98, ID `42915827477`, branch `geely-youtube-dpi`, commit `a4f8988c9b89202e027d513207ebffd3e0036c1a`: completed successfully.
+- Build job ID: `130177872611`; Gradle build, APK package verification and artifact upload all succeeded.
+- APK metadata verified in CI: package `com.romgold.geelyyoutube`, versionCode 2, versionName 0.2.0, minSdk 21, targetSdk 28.
+- APK package checks passed for both `armeabi-v7a` and `arm64-v8a`, including `libbyedpi.so` and all four expected JNI exports.
+- CI explicitly verified that the APK contains `assets/licenses/GPL-3.0.txt`, `assets/licenses/ByeDPI-MIT.txt`, and `assets/licenses/THIRD-PARTY-NOTICES.txt`.
+- Exact original ByeDPI baseline consistency guard passed.
+- Artifact: `geely-youtube-debug-apk`, ID `13810540184`, 7,907,683 bytes; artifact ZIP SHA-256 `6968960c8c4f73f1428665bb2d135260f89d46f74358b5db76c4bd57d976152e`; expires 2026-11-24 22:37 UTC. Run: https://github.com/Romangold999/free-my-tv/actions/runs/42915827477
+
+This checkpoint supersedes the earlier note saying the license validation was pending. It remains a CI-only verification: no physical Android 14 or Android 5.0 device test has been performed, so this is not an approved final release APK.
