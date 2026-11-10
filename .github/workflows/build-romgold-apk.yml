@@ -47,6 +47,11 @@ jobs:
                   if "io.freemytv" in s:
                       p.write_text(s.replace("io.freemytv", "io.romgold.freemytv"), encoding="utf-8")
 
+          build_script = Path("build.sh")
+          bs = build_script.read_text(encoding="utf-8")
+          if "package io.freemytv;" not in bs:
+              raise SystemExit("Could not locate generated Config.java package declaration.")
+          build_script.write_text(bs.replace("package io.freemytv;", "package io.romgold.freemytv;"), encoding="utf-8")
           manifest = Path("app/AndroidManifest.xml")
           s = manifest.read_text(encoding="utf-8")
           s = s.replace('android:versionCode="5"', 'android:versionCode="6"')
