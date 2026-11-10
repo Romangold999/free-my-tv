@@ -55,8 +55,8 @@ jobs:
           build_script.write_text(bs.replace("package io.freemytv;", "package io.romgold.freemytv.blue;"), encoding="utf-8")
           manifest = Path("app/AndroidManifest.xml")
           s = manifest.read_text(encoding="utf-8")
-          s = s.replace('android:versionCode="5"', 'android:versionCode="9"')
-          s = s.replace('android:versionName="1.4"', 'android:versionName="1.5.1-blue"')
+          s = s.replace('android:versionCode="5"', 'android:versionCode="10"')
+          s = s.replace('android:versionName="1.4"', 'android:versionName="1.5.2-blue"')
           s = s.replace('android:label="Free My TV"', 'android:label="Free My TV Blue"')
           manifest.write_text(s, encoding="utf-8")
 
@@ -91,8 +91,8 @@ jobs:
       - name: Publish direct APK download
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: romgold-blue-apk-1.5.1-20261110
-          name: Free My TV Blue 1.5.1
+          tag_name: romgold-blue-apk-1.5.2-20261110
+          name: Free My TV Blue 1.5.2
           body: Standalone Free My TV Blue build with a distinct Android package ID. Installs alongside the existing app.
           files: FreeMyTV-Blue.apk
           fail_on_unmatched_files: true
