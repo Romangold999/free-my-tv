@@ -1,3 +1,49 @@
+# CURRENT STATUS — 2026-11-11 (authoritative; supersedes older historical checkpoints below)
+
+Branch: `geely-youtube-dpi`
+Latest completed build at time of this note: GitHub Actions run #95, ID `42915218790`, commit `8bfec6278b675480480006a2187471d66f3c2169`, conclusion `success`.
+Artifact: `geely-youtube-debug-apk`, ID `13809027487`, 7,907,693 bytes, SHA-256 `adae51e1ce797d5edd6461df3f4c1d0b08e83716c13a8f4aa777111ef1e69cf7`, expires 2026-11-24. Run: https://github.com/Romangold999/free-my-tv/actions/runs/42915218790
+
+## Current implementation verified in source
+- Embedded ByeDPI native SOCKS5 listener at 127.0.0.1:1080, owned by an Android foreground service.
+- SOCKS5 transport configured for NewPipe Extractor, thumbnail downloads and ExoPlayer media requests, with no direct fallback in those configured paths.
+- SOCKS handshake probe (SOCKS5 no-auth greeting), not merely a TCP port check.
+- Native worker shutdown waits for worker exit before native global-state reset; JNI symbols are checked in both ARM ABIs.
+- Exact original ByeDPI baseline is compared in CI against both the profile text file and MainActivity default.
+- NewPipe Extractor v0.26.3 features in source: Home/trending, search, channel pages, local subscriptions and local watch history.
+- ExoPlayer 2.19.1 source paths for DASH, HLS and progressive/muxed streams, with separate audio/video fallback.
+- Responsive navigation and thumbnail sizing for narrow and wide displays.
+- In-app open-source license viewer and bundled GPL-3.0, ByeDPI MIT and third-party notice texts.
+
+## Build #95 checks that passed
+- Android Gradle build.
+- APK package/version metadata: `com.romgold.geelyyoutube`, versionCode 2, versionName 0.2.0.
+- minSdk 21 and targetSdk 28.
+- Both `armeabi-v7a` and `arm64-v8a` contain `libbyedpi.so`.
+- All four expected JNI exports are present in each native library.
+- Exact ByeDPI baseline consistency guard.
+- Artifact upload.
+
+A follow-up workflow change at commit `830ea1adb107674ed2965c1cc3cdfa2e4d71775d` adds explicit checks that all three license texts are actually packaged inside the APK. Its new CI run is pending at the time this note is written; do not claim that new check passed until its run is inspected.
+
+## Not complete / release blockers
+- Google OAuth / YouTube account sign-in and account-synced subscriptions/history are not implemented. Current subscriptions and history are local-only.
+- No physical-device test has been completed on the Android 14 Unihertz phone or the Geely Android 5.0/API 21 head unit.
+- CI proves compilation and packaging, not installation, native runtime, network effectiveness, actual playback/audio decode, sleep/resume or stability.
+- SOCKS handshake only verifies the local listener. It does not prove that YouTube requests succeed through the user's current network filtering.
+- Captions, adaptive quality controls, pagination, live edge cases, codec coverage and long-run stability remain unverified.
+
+## Required release gates
+1. Complete the new license-in-APK CI validation.
+2. Continue source review without speculative changes; fix only reproducible issues and run CI after changes.
+3. Test install/launch, proxy start/stop/profile switch, search, thumbnails, video+audio playback, fullscreen, sleep/resume and stability on Android 14.
+4. Repeat on the actual Geely Android 5.0/API 21 head unit, especially ARMv7 native loading and media codecs.
+5. Keep Google sign-in clearly marked unavailable unless a supported official OAuth implementation is completed and tested.
+
+User requested only a fully finished APK, not intermediate builds. Do not send the current artifact as final. Never describe CI success as proof of device compatibility. Continue only on `geely-youtube-dpi`; do not modify `main` or unrelated launcher files.
+
+---
+
 # PROJECT_NOTES.md — checkpoint for new chat branches
 
 Last updated: 2026-11-10 (UTC)
