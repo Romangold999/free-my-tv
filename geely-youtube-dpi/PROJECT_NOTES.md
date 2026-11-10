@@ -192,3 +192,22 @@ Current immediate next task: implement and compile the embedded playback path, b
 - This confirms compilation/package generation only; it does not prove device install, native ABI loading, extractor success, media routing or playback.
 - The app manifest was then updated to stop forcing landscape orientation on both activities, allowing phone rotation and responsive UI work. Version bumped to 0.2.0 / versionCode 2. A fresh CI build is required for those changes.
 - Current feature status remains a prototype: search results plus a first progressive/muxed-stream player path. Home feed, thumbnails, channels, subscriptions, history/library, account flow, DASH separate audio/video, foreground service and device tests remain outstanding.
+
+
+## Engineering checkpoint — 2026-11-10 18:56 UTC
+
+Recent work on `geely-youtube-dpi`:
+- Manifest no longer forces landscape on either activity; phone portrait/landscape rotation is permitted.
+- App version advanced to 0.2.0 / versionCode 2.
+- Added `ByeDpiService` as a foreground service with a persistent notification. It owns the native ByeDPI instance so the proxy is no longer tied to the MainActivity object; last arguments are saved to restore after process recreation.
+- Search and extractor requests check the service state. Video media is fetched through an OkHttp SOCKS5 client with retry fallback disabled. Thumbnail HTTP requests also explicitly use SOCKS5.
+- Replaced the one-page controls screen with a multi-section responsive shell: Home, Search, Subscriptions, Library, Profile, and a channel detail page.
+- Home uses the YouTube default kiosk feed through NewPipe Extractor; search and feed cards render thumbnails.
+- Added on-device watch history and locally saved channel subscriptions. These are local-only, not Google-account synced.
+- Channel pages use NewPipe Extractor ChannelInfo / ChannelTabInfo and can be opened from uploader links in result cards.
+- Google OAuth/sign-in is still not implemented. Do not claim Google account sign-in or synced subscriptions.
+- Separate DASH audio/video playback, captions, live streams, player quality selection, and end-to-end runtime verification remain open.
+- Current CI runs for the responsive UI, thumbnail/feed work, and channel/subscription work are still being evaluated. Latest branch head at this checkpoint: `d6e7dec746adb33121b45a21fe7631440e5894be`, Actions run `42880213692`.
+- No release APK is approved. The previous successful artifact predates the foreground-service and multi-section client changes and must not be distributed as a finished app.
+
+Release gate remains: successful build of current HEAD; inspect packaged minSdk/ABIs; validate ByeDPI lifecycle and all traffic paths; real install/search/channel/subscription/history/playback/fullscreen/sleep-resume tests on Android 14 and the Geely Android 5.0 head unit; resolve or explicitly document unsupported Google sign-in.
