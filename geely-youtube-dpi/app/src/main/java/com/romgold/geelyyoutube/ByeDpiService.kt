@@ -27,7 +27,11 @@ class ByeDpiService : Service() {
         val action = intent?.action ?: ACTION_START
         when (action) {
             ACTION_STOP -> {
-                proxy?.stopProxy()
+                val stopped = proxy?.stopProxy() ?: true
+                if (!stopped) {
+                    updateNotification("Ожидаем завершения ByeDPI…")
+                    return START_STICKY
+                }
                 proxy = null
                 activeArgs = null
                 stopForeground(true)
@@ -48,8 +52,14 @@ class ByeDpiService : Service() {
                 try {
                     // Applying a different saved profile must replace the running
                     // native listener; silently keeping the old arguments is misleading.
-                    if (proxy?.isRunning() == true && activeArgs != args) {
-                        proxy?.stopProxy()
+                    val existing = proxy
+                    if (existing != null && (!existing.isRunning() || activeArgs != args)) {
+                        if (!existing.stopProxy()) {
+                            updateNotification("Не удалось завершить предыдущий процесс ByeDPI")
+                            stopForeground(true)
+                            stopSelf()
+                            return START_NOT_STICKY
+                        }
                         proxy = null
                         activeArgs = null
                     }
