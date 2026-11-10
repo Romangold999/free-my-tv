@@ -22,6 +22,8 @@ jobs:
           java-version: '17'
       - name: Set up Android SDK command-line tools
         uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
       - name: Install Android build tools
         run: sdkmanager "platforms;android-34" "build-tools;34.0.0"
       - name: Restore stable signing key
