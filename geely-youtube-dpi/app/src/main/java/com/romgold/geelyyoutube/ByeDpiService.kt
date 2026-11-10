@@ -84,7 +84,7 @@ class ByeDpiService : Service() {
                     proxy?.stopProxy()
                     proxy = null
                     activeArgs = null
-                    updateNotification("Ошибка запуска ByeDPI: ${error.javaClass.simpleName}")
+                    updateNotification("Ошибка запуска ByeDPI: ${error.message ?: error.javaClass.simpleName}")
                     stopForeground(true)
                     stopSelf()
                 }
@@ -138,6 +138,7 @@ class ByeDpiService : Service() {
     private fun updateNotification(message: String) {
         val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         manager.notify(NOTIFICATION_ID, buildNotification(message))
+        statusListener?.invoke(message)
     }
 
     companion object {
@@ -148,6 +149,7 @@ class ByeDpiService : Service() {
         private const val NOTIFICATION_ID = 1080
 
         @Volatile private var activeService: ByeDpiService? = null
+        @Volatile var statusListener: ((String) -> Unit)? = null
         fun isProxyRunning(): Boolean = activeService?.proxy?.isRunning() == true
     }
 }
