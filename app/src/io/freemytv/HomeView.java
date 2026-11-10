@@ -121,7 +121,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private static final float L_STATUS = 25, L_STATUS_GAP = 22;
     private static final String[] STATUS_SYMBOLS = {"wifi", "ethernet", "bluetooth", "usb"};
     private static final float L_PLATTER_TOP = 814, L_TILE_H = 126;
-    private static final float L_DATE_BASE = 330, L_CLOCK_BASE = 540, L_WEATHER_BASE = 626, L_QUOTES_BASE = 694;
+    private static final float L_DATE_BASE = 238, L_CLOCK_BASE = 420, L_WEATHER_BASE = 626, L_QUOTES_BASE = 694;
     private static final int L_INK = 0xFF1D1D1F, L_DIM = 0xFF6E6E73, L_FAINT = 0xFF8E8E93;
     private static String[] tabs;
     private static int tabsGeneration = -1;
@@ -295,7 +295,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private int drawerHome;            // where the Home Assistant tiles start (the list's size without them)
     private Spring[] drawerFocus = new Spring[0];
     private RectF[] drawerRects = new RectF[0];
-    private final RectF weatherCard = new RectF(), quotesCard = new RectF();
+    private final RectF weatherCard = new RectF(), quotesCard = new RectF(), clockWeatherCard = new RectF();
     private final Spring drawer = new Spring(0.46f, 0.92f, 0);
     private boolean drawerOpen;
     private int drawerIndex;
@@ -4689,26 +4689,25 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         float x = MARGIN * k;
         c.drawText(dateText, x - Ui.leftBearing(lDate, dateText), L_DATE_BASE * k, lDate);
         c.drawText(clockText, x - Ui.leftBearing(lClock, clockText), L_CLOCK_BASE * k, lClock);
+
+        // The full weather dashboard sits below the clock, not squeezed into its right-hand side.
         HomeData.Weather wx = data.weather;
         if (!Prefs.weather() || Double.isNaN(wx.temp)) return;
-        if (data.weatherAt != weatherLineAt || Prefs.version != weatherLinePrefs || !Ui.language.equals(weatherLineLanguage)) {
-            weatherLineAt = data.weatherAt;
-            weatherLinePrefs = Prefs.version;
-            weatherLineLanguage = Ui.language;
-            weatherLine = HomeData.degrees(wx.temp) + "  " + HomeData.condition(wx.code, wx.isDay) + "   "
-                    + HomeData.highLow(wx, "  ");
-        }
-        // Keep the weather as a compact right-hand companion to the clock, not a second line underneath it.
-        float size = 40 * k, base = L_CLOCK_BASE * k;
-        String symbol = Symbols.weather(wx.code, wx.isDay);
-        float sw = Symbols.width(getContext(), symbol, size);
-        float right = getWidth() - MARGIN * k;
-        float maxText = Math.max(0, Math.min(720 * k, right - x - 620 * k));
-        String shown = TextUtils.ellipsize(weatherLine, new android.text.TextPaint(lWeather), maxText, TextUtils.TruncateAt.END).toString();
-        float textWidth = lWeather.measureText(shown);
-        float textX = right - sw - 16 * k - textWidth;
-        c.drawText(shown, textX, base, lWeather);
-        Symbols.draw(getContext(), c, symbol, right - sw / 2, base - Ui.halfCap(lWeather), size, lWeather.getColor());
+        clockWeatherCard.set(80 * k, 466 * k, (CONTENT_R - 80) * k, 792 * k);
+        float pulse = 0.5f + 0.5f * (float) Math.sin(SystemClock.uptimeMillis() / 2200.0);
+        fill.setShader(new LinearGradient(clockWeatherCard.left, clockWeatherCard.top,
+                clockWeatherCard.right, clockWeatherCard.bottom,
+                new int[] {0xD91A3B68, 0xC911294B, 0xB90A1C36},
+                new float[] {0f, 0.58f, 1f}, Shader.TileMode.CLAMP));
+        fill.setColor(0xFFFFFFFF);
+        c.drawRoundRect(clockWeatherCard, 30 * k, 30 * k, fill);
+        fill.setShader(null);
+        halo.setStyle(Paint.Style.STROKE);
+        halo.setStrokeWidth(1.5f * k);
+        halo.setColor(Ui.alpha(0xFF9CCBFF, 0.12f + 0.10f * pulse));
+        c.drawRoundRect(clockWeatherCard, 30 * k, 30 * k, halo);
+        halo.setStyle(Paint.Style.FILL);
+        drawWeather(c, clockWeatherCard);
     }
     /**
      * Recommendation card: the title's photo (already at the focused card size, so it stays sharp), rounded corners and
