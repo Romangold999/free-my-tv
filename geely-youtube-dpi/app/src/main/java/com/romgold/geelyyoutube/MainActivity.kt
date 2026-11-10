@@ -1,6 +1,10 @@
 package com.romgold.geelyyoutube
 
 import io.github.dovecoteescapee.byedpi.core.ByeDpiProxy
+import org.schabi.newpipe.extractor.NewPipe
+import org.schabi.newpipe.extractor.ServiceList
+import org.schabi.newpipe.extractor.search.SearchInfo
+import java.util.concurrent.Executors
 
 import android.app.Activity
 import android.os.Bundle
@@ -14,10 +18,50 @@ class MainActivity : Activity() {
     private lateinit var arguments: EditText
     private lateinit var status: TextView
     private lateinit var profilePicker: Spinner
+    private lateinit var searchQuery: EditText
+    private lateinit var searchResults: LinearLayout
+    private val extractorExecutor = Executors.newSingleThreadExecutor()
     private val prefs by lazy { getSharedPreferences("dpi_profiles", Context.MODE_PRIVATE) }
     private val byeDpi by lazy { ByeDpiProxy() }
 
     private val defaultArgs = "-Ku -a3 -An -Kt,h -n vk.com -d1 -d3+s -s6+s -d9+s -s12+s -d15+s -s20+s -d25+s -s30+s -d35+s -r1+s -S -Mh,d -As -Kt,h -n vk.com -d1 -d3+s -s6+s -d9+s -s12+s -d15+s -s20+s -d25+s -d30+s -d35+s -S -Mh,d"
+
+    private fun performYoutubeSearch() {
+        val query = searchQuery.text.toString().trim()
+        if (query.isEmpty()) {
+            status.text = "Введи запрос для поиска"
+            return
+        }
+        if (!byeDpi.isRunning()) {
+            status.text = "Сначала запусти ByeDPI: поиск идёт через SOCKS5 127.0.0.1:1080"
+            return
+        }
+        status.text = "Ищем на YouTube: $query"
+        searchResults.removeAllViews()
+        extractorExecutor.execute {
+            try {
+                val info = SearchInfo.getInfo(ServiceList.YouTube, query)
+                runOnUiThread {
+                    searchResults.removeAllViews()
+                    info.relatedItems.forEachIndexed { index, item ->
+                        val entry = Button(this).apply {
+                            text = "${index + 1}. ${item.name}"
+                            isAllCaps = false
+                            setOnClickListener {
+                                status.text = "Выбрано: ${item.name}\nСсылка: ${item.url}\nПроигрыватель подключается следующим этапом."
+                            }
+                        }
+                        searchResults.addView(entry, LinearLayout.LayoutParams(-1, 68))
+                    }
+                    status.text = "Результатов: ${info.relatedItems.size}. Нажми на видео для просмотра ссылки."
+                }
+            } catch (error: Throwable) {
+                runOnUiThread {
+                    status.text = "Ошибка поиска: ${error.message ?: error.javaClass.simpleName}"
+                }
+            }
+        }
+    }
 
     private fun names(): MutableList<String> =
         prefs.getStringSet("profile_names", emptySet())!!.toMutableList().sorted().toMutableList()
@@ -123,9 +167,25 @@ class MainActivity : Activity() {
             }
         }
         root.addView(open, LinearLayout.LayoutParams(-1, 64))
+
+        searchQuery = EditText(this).apply {
+            hint = "Поиск видео на YouTube"
+            setTextColor(Color.WHITE)
+            setHintTextColor(Color.LTGRAY)
+            setSingleLine(true)
+        }
+        root.addView(searchQuery, LinearLayout.LayoutParams(-1, 60))
+        val searchButton = Button(this).apply {
+            text = "ИСКАТЬ В YOUTUBE"
+            setOnClickListener { performYoutubeSearch() }
+        }
+        root.addView(searchButton, LinearLayout.LayoutParams(-1, 64))
+        searchResults = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        root.addView(searchResults, LinearLayout.LayoutParams(-1, -2))
         status = text("Профили сохраняются отдельно на устройстве.", 14f)
         root.addView(status)
         setContentView(ScrollView(this).apply { addView(root) })
+        NewPipe.init(ByeDpiExtractorDownloader())
 
         val initial = names()
         if (initial.isEmpty()) {
