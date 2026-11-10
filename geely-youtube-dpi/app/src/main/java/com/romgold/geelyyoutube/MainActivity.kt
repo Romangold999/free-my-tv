@@ -40,7 +40,8 @@ class MainActivity : Activity() {
         searchResults.removeAllViews()
         extractorExecutor.execute {
             try {
-                val info = SearchInfo.getInfo(ServiceList.YouTube, query)
+                val searchHandler = ServiceList.YouTube.searchQHFactory.fromQuery(query)
+                val info = SearchInfo.getInfo(ServiceList.YouTube, searchHandler)
                 runOnUiThread {
                     searchResults.removeAllViews()
                     info.relatedItems.forEachIndexed { index, item ->
