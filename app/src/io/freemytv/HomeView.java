@@ -2239,7 +2239,20 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
 
         String symbol = Symbols.weather(wx.code, wx.isDay);
         float iconSize = 76 * k;
-        Symbols.draw(getContext(), c, symbol, left + 52 * k, r.top + 164 * k, iconSize, 0xFFFFFFFF);
+        // Slow luminous weather halo: a subtle moving ring, not a distracting spinner.
+        long phase = SystemClock.uptimeMillis() % 6000L;
+        float pulse = 0.5f + 0.5f * (float) Math.sin(phase * Math.PI * 2 / 6000.0);
+        halo.setStyle(Paint.Style.STROKE);
+        halo.setStrokeWidth(2 * k);
+        halo.setColor(Ui.alpha(0xFF9CCBFF, 0.18f + 0.10f * pulse));
+        float hx = left + 52 * k, hy = r.top + 164 * k;
+        c.drawCircle(hx, hy, (48 + 5 * pulse) * k, halo);
+        halo.setStrokeWidth(3 * k);
+        halo.setColor(Ui.alpha(0xFFB8DDFF, 0.24f));
+        tmp.set(hx - 51 * k, hy - 51 * k, hx + 51 * k, hy + 51 * k);
+        c.drawArc(tmp, (phase / 6000f) * 360f, 72f, false, halo);
+        halo.setStyle(Paint.Style.FILL);
+        Symbols.draw(getContext(), c, symbol, hx, hy, iconSize, 0xFFFFFFFF);
         bigTemp.setTextSize(88 * k);
         bigTemp.setColor(0xFFFFFFFF);
         c.drawText(nowTemp, left + 112 * k - Ui.leftBearing(bigTemp, nowTemp), r.top + 164 * k, bigTemp);
