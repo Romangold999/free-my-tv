@@ -60,7 +60,7 @@ class VideoPlayerActivity : Activity() {
 
     override fun onStart() {
         super.onStart()
-        if (player == null && !streamUrl.isNullOrBlank()) initializePlayer()
+        if (player == null && (!streamUrl.isNullOrBlank() || !dashUrl.isNullOrBlank())) initializePlayer()
     }
 
     private fun initializePlayer() {
