@@ -1,4 +1,5 @@
 #include <string.h>
+#include <stdlib.h>
 #include <netdb.h>
 
 #include <jni.h>
@@ -39,15 +40,41 @@ Java_io_github_dovecoteescapee_byedpi_core_ByeDpiProxy_jniCreateSocketWithComman
         __attribute__((unused)) jobject thiz,
         jobjectArray args) {
     int argc = (*env)->GetArrayLength(env, args);
-    char *argv[argc];
+    char **argv = calloc((size_t) argc, sizeof(char *));
+    if (argv == NULL) {
+        LOG(LOG_E, "Unable to allocate ByeDPI argument vector");
+        return -1;
+    }
+
+    int copied = 0;
     for (int i = 0; i < argc; i++) {
         jstring arg = (jstring) (*env)->GetObjectArrayElement(env, args, i);
-        const char *arg_str = (*env)->GetStringUTFChars(env, arg, 0);
+        if (arg == NULL) break;
+
+        const char *arg_str = (*env)->GetStringUTFChars(env, arg, NULL);
+        if (arg_str == NULL) {
+            (*env)->DeleteLocalRef(env, arg);
+            break;
+        }
+
         argv[i] = strdup(arg_str);
         (*env)->ReleaseStringUTFChars(env, arg, arg_str);
+        (*env)->DeleteLocalRef(env, arg);
+        if (argv[i] == NULL) break;
+        copied++;
+    }
+
+    if (copied != argc) {
+        for (int i = 0; i < argc; i++) free(argv[i]);
+        free(argv);
+        LOG(LOG_E, "Unable to copy ByeDPI command-line arguments");
+        return -1;
     }
 
     int res = parse_args(argc, argv);
+    for (int i = 0; i < argc; i++) free(argv[i]);
+    free(argv);
+
     if (res < 0) {
         uniperror("parse_args");
         return -1;
