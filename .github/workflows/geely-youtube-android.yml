@@ -46,8 +46,8 @@ jobs:
           from pathlib import Path
           p = Path("geely-youtube-dpi/app/src/main/cpp/byedpi/main.c")
           s = p.read_text()
-          old = "int main(int argc, char **argv) \n{"
-          new = "int parse_args(int argc, char **argv) \n{\n    optind = 1;\n    opterr = 0;"
+          old = "int main(int argc, char **argv) \\n{"
+          new = "int parse_args(int argc, char **argv) \\n{\\n    optind = 1;\\n    opterr = 0;"
           if old not in s:
               raise SystemExit("Could not locate upstream ByeDPI main() parser")
           s = s.replace(old, new, 1)
@@ -57,7 +57,7 @@ jobs:
 }"""
           if old_tail not in s:
               raise SystemExit("Could not locate upstream ByeDPI parser tail")
-          s = s.replace(old_tail, "    return 0;\n}", 1)
+          s = s.replace(old_tail, "    return 0;\\n}", 1)
           p.write_text(s)
           PY
       - name: Verify original ByeDPI baseline consistency
