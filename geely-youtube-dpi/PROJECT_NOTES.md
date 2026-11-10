@@ -244,3 +244,9 @@ Additional playback and proxy-readiness work — 2026-11-11:
 - ByeDPI startup now probes `127.0.0.1:1080` before the service reports the proxy ready. This checks that the local listener accepts a connection; it does NOT prove that an external YouTube request succeeds.
 - The readiness probe runs outside the proxy object's monitor so the native worker can publish an early exit without being blocked by the check.
 - All these latest changes still require a green CI run and real-device validation. No Android 5.0 or Android 14 runtime test has been performed.
+
+
+Playback follow-up:
+- ExoPlayer DASH playback now starts when the intent contains only a DASH manifest URL (the player lifecycle guard was updated accordingly).
+- The ByeDPI native worker now stores its thread reference before starting it and clears that reference only if it still belongs to that worker. This prevents a fast worker exit or delayed stop from clearing a newer worker's reference.
+- Stop now joins the specific worker instance it stopped rather than whichever worker happens to be current.
