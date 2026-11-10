@@ -84,7 +84,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: FreeMyTV-Blue-APK
-          path: FreeMyTV-Blue.apk
+          path: FreeMyTV-Blue-Standalone.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -94,5 +94,5 @@ jobs:
           tag_name: romgold-blue-standalone-apk-1.5.2-20261110
           name: Free My TV Blue 1.5.2 — Standalone
           body: Standalone Free My TV Blue build with a unique Android package ID. Installs alongside both the original app and prior Blue builds.
-          files: FreeMyTV-Blue.apk
+          files: FreeMyTV-Blue-Standalone.apk
           fail_on_unmatched_files: true
