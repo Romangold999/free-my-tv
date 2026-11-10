@@ -250,3 +250,30 @@ Playback follow-up:
 - ExoPlayer DASH playback now starts when the intent contains only a DASH manifest URL (the player lifecycle guard was updated accordingly).
 - The ByeDPI native worker now stores its thread reference before starting it and clears that reference only if it still belongs to that worker. This prevents a fast worker exit or delayed stop from clearing a newer worker's reference.
 - Stop now joins the specific worker instance it stopped rather than whichever worker happens to be current.
+
+
+## Authoritative checkpoint — 2026-11-11 (supersedes stale status above)
+
+Current implementation on branch `geely-youtube-dpi` includes:
+- Foreground `ByeDpiService` that owns the native ByeDPI listener, stores the last arguments for sticky restart, and restarts when a different profile is selected.
+- SOCKS5-only transport at `127.0.0.1:1080` for NewPipe Extractor requests, thumbnails, and ExoPlayer media requests. No direct fallback is configured.
+- NewPipe Extractor v0.26.3, custom downloader, YouTube home/trending, search results, channel pages, local subscriptions and local history.
+- ExoPlayer 2.19.1 with DASH, HLS and progressive playback paths; separate audio/video streams are merged when no manifest or muxed stream is available.
+- Adaptive horizontal navigation and thumbnail widths for narrow phone and wide displays.
+- CI validates package name/version, minSdk 21, targetSdk 28 and native ARMv7/ARM64 libraries.
+
+Recent verified build:
+- Run #78, ID `42913294345`, commit `2847aa7aa8004f01d20d73724f2e5f6438efddea`, completed successfully.
+- HLS support was included in that build.
+
+Profile integrity correction:
+- The original user-supplied ByeDPI baseline is now copied exactly into `profiles/user-supplied-youtube.txt` and the in-app default. The second sequence's `-d20+s` is preserved exactly; do not normalize it to `-s20+s`.
+- The original baseline is a reference and must not be silently altered. Any tuning must use a separate named profile with a recorded rollback.
+
+Not implemented / not verified:
+- Google OAuth and account-synced subscriptions/history are not implemented. Current subscriptions/history are local-only. Do not request or store Google passwords.
+- CI success does not prove runtime behavior. No physical Android 5.0 Geely head-unit test or Android 14 phone test has been completed.
+- No verified evidence yet that the chosen ByeDPI profile bypasses the user's current network filtering; a local SOCKS listener check only verifies local socket startup.
+- Playback, live streams, captions, sleep/resume and long-run stability remain untested on both devices.
+
+Release gate remains: actual install/launch, native library load, proxy operation, search, video+audio playback, fullscreen and sleep/resume on the real Android 5.0 head unit and Android 14 phone. Do not deliver as finished until these are verified.
