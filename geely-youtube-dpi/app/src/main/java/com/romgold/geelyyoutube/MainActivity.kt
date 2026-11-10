@@ -198,7 +198,7 @@ class MainActivity : Activity() {
         profilePicker = Spinner(this)
         local.addView(profilePicker, LinearLayout.LayoutParams(-1, dp(52)))
         profileName = EditText(this).apply {
-            hint = "Название профиля"; setTextColor(Color.WHITE); setHintTextColor(Color.LTGRAY); singleLine = true
+            hint = "Название профиля"; setTextColor(Color.WHITE); setHintTextColor(Color.LTGRAY); setSingleLine(true)
         }
         local.addView(profileName, LinearLayout.LayoutParams(-1, dp(54)))
         arguments = EditText(this).apply {
