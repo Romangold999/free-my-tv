@@ -22,9 +22,9 @@ GitHub Actions builds a debug APK with:
 - JNI export checks for both native ABIs;
 - a guard comparing the exact original ByeDPI command against the in-app default and profile file.
 
-Latest completed build: [Actions run #95](https://github.com/Romangold999/free-my-tv/actions/runs/42915218790), commit `8bfec6278b675480480006a2187471d66f3c2169`, successful. Artifact ID `13809027487`; SHA-256 `adae51e1ce797d5edd6461df3f4c1d0b08e83716c13a8f4aa777111ef1e69cf7`.
+Latest completed build: [Actions run #98](https://github.com/Romangold999/free-my-tv/actions/runs/42915827477), commit `a4f8988c9b89202e027d513207ebffd3e0036c1a`, successful. Artifact ID `13810540184` (`geely-youtube-debug-apk`, 7,907,683 bytes; artifact ZIP SHA-256 `6968960c8c4f73f1428665bb2d135260f89d46f74358b5db76c4bd57d976152e`).
 
-A subsequent workflow change adds checks for all three license files inside the APK. That new check must pass in its own Actions run before it is considered verified.
+Run #98 passed the APK checks, including presence of all three license texts inside the APK, both native ABIs, all four JNI exports, package/version metadata, minSdk/targetSdk and the exact original ByeDPI baseline guard. This verifies the build/package only, not runtime compatibility or playback on either physical device.
 
 ## Important limitations
 
