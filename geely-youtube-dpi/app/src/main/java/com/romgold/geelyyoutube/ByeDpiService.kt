@@ -22,7 +22,8 @@ class ByeDpiService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        when (intent?.action) {
+        val action = intent?.action ?: ACTION_START
+        when (action) {
             ACTION_STOP -> {
                 proxy?.stopProxy()
                 proxy = null
@@ -32,7 +33,16 @@ class ByeDpiService : Service() {
                 return START_NOT_STICKY
             }
             ACTION_START -> {
-                val args = intent.getStringExtra(EXTRA_ARGUMENTS).orEmpty()
+                val storedArgs = getSharedPreferences("dpi_profiles", MODE_PRIVATE)
+                    .getString("last_byedpi_args", "").orEmpty()
+                val args = intent?.getStringExtra(EXTRA_ARGUMENTS) ?: storedArgs
+                if (args.isBlank()) {
+                    isActive = false
+                    stopSelf()
+                    return START_NOT_STICKY
+                }
+                getSharedPreferences("dpi_profiles", MODE_PRIVATE).edit()
+                    .putString("last_byedpi_args", args).apply()
                 startForeground(NOTIFICATION_ID, buildNotification("Запуск локального SOCKS5…"))
                 try {
                     if (proxy?.isRunning() != true) {
