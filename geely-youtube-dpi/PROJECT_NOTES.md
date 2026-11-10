@@ -130,3 +130,14 @@ Important: This proves the current debug APK compiles and was uploaded as an Act
 - Keep all code changes scoped to `geely-youtube-dpi/` plus the root workflow file when needed.
 - Before changing an existing file, fetch its current contents/SHA from the target branch; write only to `geely-youtube-dpi`.
 - In a new chat, read this file first, then check the current branch HEAD and latest Actions run/artifacts because this checkpoint can become stale.
+
+
+## Device compatibility and real-device testing (mandatory)
+
+- Geely head unit runs Android 5.0 (API 21). The app's current `minSdk = 21` is intentional and must remain at 21 unless a documented blocker is found. Do not accidentally raise minSdk through a library or AndroidX dependency.
+- Android 5.0 compatibility is a release gate, not an assumption: validate APK install/launch, native ByeDPI ABI (`armeabi-v7a` is required for many older head units), proxy start/stop, search, video playback and audio/video decoding on the actual Geely unit. Compile success alone is insufficient.
+- User's phone is Android 14 (Unihertz Tank 2). Every debug/release candidate must also be installable and testable on this phone before considering the build ready. Keep both `armeabi-v7a` and `arm64-v8a` native ABIs in the APK.
+- Keep target SDK / permissions / foreground-service behavior compatible with both Android 5 and Android 14. Avoid APIs unavailable on API 21 unless guarded by runtime version checks. Check NewPipe Extractor, desugaring and any future player dependencies for minSdk/API requirements before adding them.
+- Phone test path should be simple: provide a directly downloadable debug APK from GitHub Actions artifact/release; user installs it on Android 14 and reports results. Do not require Android Studio, adb, or manual builds from the user.
+- Maintain a device test checklist and record actual outcomes separately for (A) Android 14 phone and (B) Geely Android 5.0 head unit: install/launch, adaptive layout, account flow, search, ByeDPI profile switching, stream playback, audio, fullscreen, sleep/resume, and stability. Never mark a device test passed until the user confirms it or verified test evidence exists.
+- Current Gradle config inspected 2026-11-10: `minSdk = 21`, `targetSdk = 28`, ABI filters `armeabi-v7a` + `arm64-v8a`. This is a compatibility starting point, not proof of runtime support.
