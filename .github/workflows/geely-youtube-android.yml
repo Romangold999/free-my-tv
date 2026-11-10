@@ -45,6 +45,18 @@ jobs:
       - name: Build debug APK
         working-directory: geely-youtube-dpi
         run: gradle --no-daemon assembleDebug
+      - name: Verify APK package and native ABIs
+        run: |
+          APK="geely-youtube-dpi/app/build/outputs/apk/debug/app-debug.apk"
+          test -f "$APK"
+          CONTENTS="$(unzip -Z1 "$APK")"
+          for ABI in armeabi-v7a arm64-v8a; do
+            echo "$CONTENTS" | grep -qx "lib/$ABI/libbyedpi.so"
+          done
+          AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
+          "$AAPT" dump badging "$APK" | grep -F "package: name='com.romgold.geelyyoutube' versionCode='2' versionName='0.2.0'"
+          "$AAPT" dump badging "$APK" | grep -F "sdkVersion:'21'"
+          "$AAPT" dump badging "$APK" | grep -F "targetSdkVersion:'28'"
       - uses: actions/upload-artifact@v4
         with:
           name: geely-youtube-debug-apk
