@@ -236,3 +236,11 @@ Known incomplete / unverified requirements:
 - Home feed currently uses the extractor's YouTube trending kiosk endpoint; it is not a personalized signed-in recommendation feed.
 - Search/feed/channel pagination and richer channel metadata are not complete.
 - Do not label the APK finished or provide it as final until build is green and both target devices have been tested. User explicitly requested only the fully finished APK, not intermediate builds.
+
+
+Additional playback and proxy-readiness work — 2026-11-11:
+- Added ExoPlayer DASH module and prefer NewPipe's DASH MPD manifest for adaptive audio/video playback, with every manifest/media request still sent through the local SOCKS5 proxy.
+- Corrected NewPipe stream selection: video-only streams are exposed through `StreamInfo.videoOnlyStreams`, not the combined `videoStreams` list. The fallback path now reads the correct collection and pairs it with an audio stream only when DASH is unavailable.
+- ByeDPI startup now probes `127.0.0.1:1080` before the service reports the proxy ready. This checks that the local listener accepts a connection; it does NOT prove that an external YouTube request succeeds.
+- The readiness probe runs outside the proxy object's monitor so the native worker can publish an early exit without being blocked by the check.
+- All these latest changes still require a green CI run and real-device validation. No Android 5.0 or Android 14 runtime test has been performed.
