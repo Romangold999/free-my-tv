@@ -78,13 +78,13 @@ jobs:
           cp FreeMyTV.apk FreeMyTV-Blue.apk
       - name: Verify package identity and APK alignment
         run: |
-          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging FreeMyTV-Romgold.apk | grep -E "^package:|^application-label:"
-          "$ANDROID_HOME/build-tools/34.0.0/zipalign" -c -v 4 FreeMyTV-Romgold.apk
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging FreeMyTV-Blue.apk | grep -E "^package:|^application-label:"
+          "$ANDROID_HOME/build-tools/34.0.0/zipalign" -c -v 4 FreeMyTV-Blue.apk
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: FreeMyTV-Blue-APK
-          path: FreeMyTV-Romgold.apk
+          path: FreeMyTV-Blue.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -92,7 +92,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: romgold-blue-apk-1.5.1-20261110
-          name: FreeMyTV Romgold 1.4.1
+          name: Free My TV Blue 1.5.1
           body: Standalone Free My TV Blue build with a distinct Android package ID. Installs alongside the existing app.
-          files: FreeMyTV-Romgold.apk
+          files: FreeMyTV-Blue.apk
           fail_on_unmatched_files: true
