@@ -51,8 +51,8 @@ jobs:
               raise SystemExit("Could not locate upstream ByeDPI main()")
           s = s.replace(old, "int parse_args(int argc, char **argv) ", 1)
           s = s.replace(
-              "int parse_args(int argc, char **argv) {",
-              "int parse_args(int argc, char **argv) {\n    optind = 1;\n    opterr = 0;",
+              "int parse_args(int argc, char **argv) \\n{",
+              "int parse_args(int argc, char **argv) \\n{\\n    optind = 1;\\n    opterr = 0;",
               1
           )
           tail = "    int status = run((struct sockaddr_ina *)&params.laddr);\n    clear_params();\n    return status;"
