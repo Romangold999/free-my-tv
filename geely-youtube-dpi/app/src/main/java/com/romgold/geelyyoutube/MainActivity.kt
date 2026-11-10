@@ -148,7 +148,7 @@ class MainActivity : Activity() {
             hint = "Название видео или запрос"
             setTextColor(Color.WHITE)
             setHintTextColor(Color.LTGRAY)
-            singleLine = true
+            setSingleLine(true)
             textSize = 16f
             setPadding(dp(14), dp(8), dp(14), dp(8))
             background = GradientDrawable().apply {
