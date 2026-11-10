@@ -289,7 +289,9 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
 
     /** Your photos when they are on, otherwise the picks'. */
     private List<Recs.Pick> photos() {
-        return Photos.on(getContext()) ? Photos.picks(getContext()) : recs.showcase();
+        if (Photos.on(getContext())) return Photos.picks(getContext());
+        List<Recs.Pick> online = OnlinePhotos.picks(getContext());
+        return online.isEmpty() ? recs.showcase() : online;
     }
 
     /** Loads the next photo in the background (one at a time); once ready, it comes in at the right moment. */
