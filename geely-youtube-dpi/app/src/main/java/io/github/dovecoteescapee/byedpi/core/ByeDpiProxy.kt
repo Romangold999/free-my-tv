@@ -1,5 +1,8 @@
 package io.github.dovecoteescapee.byedpi.core
 
+import java.net.InetSocketAddress
+import java.net.Socket
+
 /**
  * Embedded ByeDPI SOCKS listener.
  *
@@ -40,7 +43,30 @@ class ByeDpiProxy {
             isDaemon = true
             start()
         }
+
+        // A valid file descriptor alone does not prove that the SOCKS listener
+        // entered its event loop. Verify the fixed local endpoint before reporting
+        // a successful start to the foreground service.
+        if (!waitForListener(fd)) {
+            stopProxy()
+            return false
+        }
         return true
+    }
+
+
+    private fun waitForListener(expectedFd: Int): Boolean {
+        val deadline = System.currentTimeMillis() + 1500L
+        while (System.currentTimeMillis() < deadline) {
+            if (socketFd != expectedFd || worker?.isAlive != true) return false
+            try {
+                Socket().use { it.connect(InetSocketAddress("127.0.0.1", 1080), 120) }
+                return true
+            } catch (_: Exception) {
+                Thread.sleep(50)
+            }
+        }
+        return false
     }
 
     @Synchronized
