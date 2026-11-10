@@ -46,6 +46,12 @@ jobs:
           from pathlib import Path
           p = Path("geely-youtube-dpi/app/src/main/cpp/byedpi/main.c")
           lines = p.read_text().splitlines()
+          for i, line in enumerate(lines):
+              if line.startswith("int main(int argc, char **argv)"):
+                  lines[i] = line.replace("int main(", "int parse_args(", 1)
+                  break
+          else:
+              raise SystemExit("Could not locate upstream ByeDPI main() declaration")
           sig = next((i for i, line in enumerate(lines) if line.startswith("int parse_args(int argc, char **argv)")), None)
           if sig is None or lines[sig + 1].strip() != "{":
               raise SystemExit("Could not locate ByeDPI parser signature")
