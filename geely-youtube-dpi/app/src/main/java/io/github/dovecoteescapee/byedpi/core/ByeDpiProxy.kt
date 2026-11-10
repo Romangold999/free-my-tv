@@ -31,14 +31,13 @@ class ByeDpiProxy {
             if (fd < 0) return false
 
             socketFd = fd
-            lateinit var nativeWorker: Thread
-            nativeWorker = Thread({
+            val nativeWorker = Thread({
                 try {
                     jniStartProxy(fd)
                 } finally {
                     synchronized(this) {
                         if (socketFd == fd) socketFd = -1
-                        if (worker === nativeWorker) worker = null
+                        if (worker === Thread.currentThread()) worker = null
                     }
                 }
             }, "ByeDPI-native-proxy")
