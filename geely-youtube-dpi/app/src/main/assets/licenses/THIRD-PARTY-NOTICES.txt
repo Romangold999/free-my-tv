@@ -1,0 +1,24 @@
+Third-party software notices
+
+This application includes or uses the following free/open-source components:
+
+1. NewPipe Extractor v0.26.3
+   Project: https://github.com/TeamNewPipe/NewPipeExtractor
+   License: GNU General Public License version 3 or later.
+   The full license text is provided in GPL-3.0.txt.
+
+2. ByeDPIAndroid JNI/native integration
+   Upstream: https://github.com/dovecoteescapee/ByeDPIAndroid
+   Pinned commit: 43db0955de687d43f9473374dc7c5548eaa55359
+   License: GNU General Public License version 3.
+   The full license text is provided in GPL-3.0.txt.
+
+3. hufrea/byedpi native core
+   Upstream: https://github.com/hufrea/byedpi
+   License: MIT.
+   The license text is provided in ByeDPI-MIT.txt.
+
+Source code for this application and its modifications is published in:
+https://github.com/Romangold999/free-my-tv/tree/geely-youtube-dpi/geely-youtube-dpi
+
+The app's GPL-covered portions are distributed under GPL-3.0-or-later.
