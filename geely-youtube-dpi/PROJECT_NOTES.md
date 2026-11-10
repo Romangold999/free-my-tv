@@ -211,3 +211,28 @@ Recent work on `geely-youtube-dpi`:
 - No release APK is approved. The previous successful artifact predates the foreground-service and multi-section client changes and must not be distributed as a finished app.
 
 Release gate remains: successful build of current HEAD; inspect packaged minSdk/ABIs; validate ByeDPI lifecycle and all traffic paths; real install/search/channel/subscription/history/playback/fullscreen/sleep-resume tests on Android 14 and the Geely Android 5.0 head unit; resolve or explicitly document unsupported Google sign-in.
+
+
+## Progress checkpoint — 2026-11-11
+
+Latest code changes after the previous checkpoint:
+- Added `ByeDpiService` foreground service to keep the native ByeDPI listener alive outside Activity lifecycle. It persists the last arguments for Android sticky-service restart. This is implemented but has NOT been device-tested.
+- Fixed profile application semantics: when the user starts ByeDPI with a different argument string, the service now stops the previous native proxy and starts a new instance with the selected profile. Previously, pressing Start while the old proxy was running silently kept the old arguments.
+- Improved compact-phone navigation: narrow screens use shorter labels and a horizontally scrollable tab row rather than squeezing five buttons into the viewport.
+- Video thumbnails now scale by available screen width (small phone / medium / wide display).
+- Existing client sections include Home/trending, Search, local Subscriptions, Library/History, Channel pages, Profile/ByeDPI settings, and fullscreen ExoPlayer activity.
+- Playback code now attempts a muxed stream first and falls back to merging a video-only stream with an audio stream. Compatibility across YouTube formats/devices remains unverified.
+- Extractor requests, thumbnail requests, and ExoPlayer media requests explicitly use SOCKS5 at 127.0.0.1:1080; there is no direct fallback in these transport paths.
+
+Build status:
+- Historical run #57 (commit `903fbe3ab000819726c8232aa4dd7f4a8cd98787`) completed successfully.
+- New service/profile and responsive-UI changes have triggered runs #58 and #59. They must be checked after completion; successful compilation is not device validation.
+
+Known incomplete / unverified requirements:
+- Google OAuth / YouTube account sign-in and account-synced subscriptions/history are not implemented. Current subscriptions and history are local-only.
+- No real device test has yet verified Android 5.0 (API 21) install, ARMv7 native library loading, proxy start/stop, search, thumbnails, audio/video playback, fullscreen, sleep/resume, or long-running stability.
+- Android 14 behavior and foreground-service lifecycle also need a real-device test.
+- Playback still needs robust format/codec selection, adaptive quality, captions, and live-stream validation.
+- Home feed currently uses the extractor's YouTube trending kiosk endpoint; it is not a personalized signed-in recommendation feed.
+- Search/feed/channel pagination and richer channel metadata are not complete.
+- Do not label the APK finished or provide it as final until build is green and both target devices have been tested. User explicitly requested only the fully finished APK, not intermediate builds.
