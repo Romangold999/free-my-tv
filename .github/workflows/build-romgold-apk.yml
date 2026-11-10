@@ -7,7 +7,7 @@ on:
       - custom/weather-screensaver-apk
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -85,3 +85,12 @@ jobs:
           path: FreeMyTV-Romgold.apk
           if-no-files-found: error
           retention-days: 30
+
+      - name: Publish direct APK download
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: romgold-apk-1.4.1-20261110
+          name: FreeMyTV Romgold 1.4.1
+          body: Custom standalone APK build. Installs alongside the original app.
+          files: FreeMyTV-Romgold.apk
+          fail_on_unmatched_files: true
