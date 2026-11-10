@@ -8,6 +8,8 @@ import android.widget.Toast
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.source.DefaultMediaSourceFactory
+import com.google.android.exoplayer2.source.MergingMediaSource
+import com.google.android.exoplayer2.source.ProgressiveMediaSource
 import com.google.android.exoplayer2.ui.PlayerView
 import com.google.android.exoplayer2.ext.okhttp.OkHttpDataSource
 import okhttp3.OkHttpClient
@@ -43,12 +45,21 @@ class VideoPlayerActivity : Activity() {
             .build()
         val dataSourceFactory = OkHttpDataSource.Factory(client)
         val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory)
+        val audioUrl = intent.getStringExtra(EXTRA_AUDIO_URL)
+        val mediaSource = if (!audioUrl.isNullOrBlank()) {
+            val progressiveFactory = ProgressiveMediaSource.Factory(dataSourceFactory)
+            val videoSource = progressiveFactory.createMediaSource(MediaItem.fromUri(url))
+            val audioSource = progressiveFactory.createMediaSource(MediaItem.fromUri(audioUrl))
+            MergingMediaSource(videoSource, audioSource)
+        } else {
+            mediaSourceFactory.createMediaSource(MediaItem.fromUri(url))
+        }
 
         player = ExoPlayer.Builder(this)
             .setMediaSourceFactory(mediaSourceFactory)
             .build()
             .also { exo ->
-                exo.setMediaItem(MediaItem.fromUri(url))
+                exo.setMediaSource(mediaSource)
                 exo.prepare()
                 exo.playWhenReady = true
             }
@@ -72,5 +83,6 @@ class VideoPlayerActivity : Activity() {
 
     companion object {
         const val EXTRA_STREAM_URL = "stream_url"
+        const val EXTRA_AUDIO_URL = "audio_stream_url"
     }
 }
