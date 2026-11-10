@@ -5,6 +5,9 @@ import org.schabi.newpipe.extractor.ServiceList
 import org.schabi.newpipe.extractor.search.SearchInfo
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import org.schabi.newpipe.extractor.kiosk.KioskInfo
+import org.schabi.newpipe.extractor.channel.ChannelInfo
+import org.schabi.newpipe.extractor.channel.tabs.ChannelTabInfo
+import org.schabi.newpipe.extractor.stream.StreamInfoItem
 import java.util.concurrent.Executors
 import android.app.Activity
 import android.os.Bundle
@@ -33,6 +36,13 @@ class MainActivity : Activity() {
     private lateinit var homeRecent: LinearLayout
     private lateinit var homeFeed: LinearLayout
     private lateinit var libraryList: LinearLayout
+    private lateinit var subscriptionsList: LinearLayout
+    private lateinit var channelTitle: TextView
+    private lateinit var channelDescription: TextView
+    private lateinit var channelVideos: LinearLayout
+    private lateinit var channelSubscribeButton: Button
+    private var currentChannelUrl: String = ""
+    private var currentChannelName: String = ""
     private lateinit var pageHost: FrameLayout
     private val pages = LinkedHashMap<String, View>()
     private val navButtons = LinkedHashMap<String, Button>()
@@ -91,6 +101,7 @@ class MainActivity : Activity() {
         pages.forEach { (name, view) -> view.visibility = if (name == key) View.VISIBLE else View.GONE }
         navButtons.forEach { (name, button) -> button.alpha = if (name == key) 1f else 0.62f }
         if (key == "library") refreshHistory(libraryList)
+        if (key == "subscriptions") refreshSubscriptions()
         if (key == "home") {
             refreshHistory(homeRecent, 4)
             if (ByeDpiService.isProxyRunning()) loadHomeFeed()
@@ -158,7 +169,9 @@ class MainActivity : Activity() {
         val c = card()
         c.addView(label("Подписки", 26f, Color.WHITE, true))
         c.addView(label("Раздел подготовлен, но подключение Google/YouTube-аккаунта ещё не реализовано.", 16f, Color.LTGRAY))
-        c.addView(label("Не вводи пароль Google в это приложение. Без официального безопасного входа синхронизированные подписки недоступны.", 14f, Color.rgb(255, 190, 110)))
+        c.addView(label("Подписки здесь хранятся локально. Вход Google и синхронизация аккаунта пока не подключены.", 14f, Color.rgb(255, 190, 110)))
+        subscriptionsList = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        c.addView(subscriptionsList)
         addCard(body, c, 0)
         return scroll
     }
@@ -280,7 +293,102 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun addStreamCard(parent: LinearLayout, number: Int, title: String, url: String, thumbnailUrl: String) {
+    private fun buildChannelPage(): View {
+        val (scroll, body) = scrollPage()
+        channelTitle = label("Канал", 25f, Color.WHITE, true)
+        channelDescription = label("", 13f, Color.LTGRAY)
+        body.addView(channelTitle)
+        body.addView(channelDescription)
+        channelSubscribeButton = actionButton("ПОДПИСАТЬСЯ") {
+            toggleSubscription(currentChannelName, currentChannelUrl)
+        }
+        body.addView(channelSubscribeButton)
+        body.addView(label("Видео канала", 17f, Color.WHITE, true))
+        channelVideos = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        body.addView(channelVideos)
+        return scroll
+    }
+
+    private fun subscriptionEntries(): List<Pair<String, String>> {
+        return prefs.getStringSet("local_subscriptions", emptySet()).orEmpty().mapNotNull { raw ->
+            val parts = raw.split("|", limit = 2)
+            if (parts.size != 2) null else decode(parts[0]) to decode(parts[1])
+        }
+    }
+
+    private fun toggleSubscription(name: String, url: String) {
+        if (name.isBlank() || url.isBlank()) return
+        val entries = prefs.getStringSet("local_subscriptions", emptySet())!!.toMutableSet()
+        val encoded = encode(name) + "|" + encode(url)
+        if (entries.contains(encoded)) {
+            entries.remove(encoded)
+            status.text = "Канал удалён из подписок"
+        } else {
+            entries.add(encoded)
+            status.text = "Канал добавлен в подписки"
+        }
+        prefs.edit().putStringSet("local_subscriptions", entries).apply()
+        updateChannelSubscriptionButton()
+        refreshSubscriptions()
+    }
+
+    private fun updateChannelSubscriptionButton() {
+        val subscribed = subscriptionEntries().any { it.second == currentChannelUrl }
+        channelSubscribeButton.text = if (subscribed) "ОТПИСАТЬСЯ" else "ПОДПИСАТЬСЯ"
+    }
+
+    private fun refreshSubscriptions() {
+        subscriptionsList.removeAllViews()
+        val entries = subscriptionEntries()
+        if (entries.isEmpty()) {
+            subscriptionsList.addView(label("Пока нет сохранённых каналов. Открой канал из результатов поиска и нажми «Подписаться».", 14f, Color.LTGRAY))
+            return
+        }
+        entries.forEach { (name, url) ->
+            subscriptionsList.addView(actionButton(name) { openChannel(url) },
+                LinearLayout.LayoutParams(-1, dp(52)))
+        }
+    }
+
+    private fun openChannel(url: String) {
+        status.text = "Загружаем канал…"
+        showPage("channel")
+        channelTitle.text = "Загрузка канала…"
+        channelDescription.text = ""
+        channelVideos.removeAllViews()
+        extractorExecutor.execute {
+            try {
+                val info = ChannelInfo.getInfo(ServiceList.YouTube, url)
+                val videosTab = info.tabs.firstOrNull { it.contentFilters.contains("videos") }
+                    ?: info.tabs.firstOrNull()
+                    ?: throw IllegalStateException("У канала нет доступной вкладки с видео")
+                val tabInfo = ChannelTabInfo.getInfo(ServiceList.YouTube, videosTab)
+                runOnUiThread {
+                    currentChannelName = info.name
+                    currentChannelUrl = info.url
+                    channelTitle.text = info.name
+                    channelDescription.text = info.description.orEmpty()
+                    updateChannelSubscriptionButton()
+                    channelVideos.removeAllViews()
+                    tabInfo.relatedItems.forEachIndexed { index, item ->
+                        val stream = item as? StreamInfoItem
+                        if (stream != null) addStreamCard(channelVideos, index + 1, stream.name, stream.url,
+                            stream.thumbnails.firstOrNull()?.url.orEmpty())
+                    }
+                    status.text = "Канал: ${info.name}"
+                }
+            } catch (error: Throwable) {
+                runOnUiThread {
+                    channelTitle.text = "Не удалось открыть канал"
+                    channelDescription.text = error.message ?: error.javaClass.simpleName
+                    status.text = "Ошибка загрузки канала"
+                }
+            }
+        }
+    }
+
+    private fun addStreamCard(parent: LinearLayout, number: Int, title: String, url: String, thumbnailUrl: String,
+                              channelName: String = "", channelUrl: String = "") {
         val row = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -301,6 +409,9 @@ class MainActivity : Activity() {
         }
         textColumn.addView(label("${number}. ${title}", 14f, Color.WHITE, true))
         textColumn.addView(label("YouTube · нажми для просмотра", 11f, Color.LTGRAY))
+        if (channelUrl.isNotBlank()) {
+            textColumn.addView(actionButton("Канал: " + channelName) { openChannel(channelUrl) })
+        }
         row.addView(textColumn, LinearLayout.LayoutParams(0, -2, 1f))
         row.setOnClickListener { playYoutubeVideo(url, title) }
         parent.addView(row, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(8) })
@@ -344,7 +455,8 @@ class MainActivity : Activity() {
                     homeFeed.removeAllViews()
                     info.relatedItems.forEachIndexed { index, item ->
                         addStreamCard(homeFeed, index + 1, item.name, item.url,
-                            item.thumbnails.firstOrNull()?.url.orEmpty())
+                            item.thumbnails.firstOrNull()?.url.orEmpty(),
+                            item.uploaderName.orEmpty(), item.uploaderUrl.orEmpty())
                     }
                     if (info.relatedItems.isEmpty()) homeFeed.addView(label("Лента пока не вернула видео.", 13f, Color.LTGRAY))
                 }
@@ -376,8 +488,10 @@ class MainActivity : Activity() {
                 runOnUiThread {
                     searchResults.removeAllViews()
                     info.relatedItems.forEachIndexed { index, item ->
+                        val stream = item as? StreamInfoItem
                         addStreamCard(searchResults, index + 1, item.name, item.url,
-                            item.thumbnails.firstOrNull()?.url.orEmpty())
+                            item.thumbnails.firstOrNull()?.url.orEmpty(),
+                            stream?.uploaderName.orEmpty(), stream?.uploaderUrl.orEmpty())
                     }
                     status.text = "Найдено: ${info.relatedItems.size}"
                 }
@@ -464,6 +578,7 @@ class MainActivity : Activity() {
         addPage("subscriptions", buildSubscriptionsPage())
         addPage("library", buildLibraryPage())
         addPage("profile", buildProfilePage())
+        addPage("channel", buildChannelPage())
 
         val initial = names()
         if (initial.isEmpty()) {
