@@ -1,5 +1,7 @@
 package com.romgold.geelyyoutube
 
+import io.github.dovecoteescapee.byedpi.core.ByeDpiProxy
+
 import android.app.Activity
 import android.os.Bundle
 import android.graphics.Color
@@ -13,6 +15,7 @@ class MainActivity : Activity() {
     private lateinit var status: TextView
     private lateinit var profilePicker: Spinner
     private val prefs by lazy { getSharedPreferences("dpi_profiles", Context.MODE_PRIVATE) }
+    private val byeDpi by lazy { ByeDpiProxy() }
 
     private val defaultArgs = "-Ku -a3 -An -Kt,h -n vk.com -d1 -d3+s -s6+s -d9+s -s12+s -d15+s -s20+s -d25+s -s30+s -d35+s -r1+s -S -Mh,d -As -Kt,h -n vk.com -d1 -d3+s -s6+s -d9+s -s12+s -d15+s -s20+s -d25+s -d30+s -d35+s -S -Mh,d"
 
@@ -90,6 +93,28 @@ class MainActivity : Activity() {
             }
         }
         root.addView(save, LinearLayout.LayoutParams(-1, 64))
+
+        val startProxy = Button(this).apply {
+            text = "ЗАПУСТИТЬ BYEDPI"
+            setOnClickListener {
+                try {
+                    val started = byeDpi.startProxy(arguments.text.toString())
+                    status.text = if (started) "ByeDPI запущен: SOCKS5 127.0.0.1:1080" else "ByeDPI не запустился. Проверь аргументы."
+                } catch (error: Exception) {
+                    status.text = "Ошибка ByeDPI: ${error.message ?: "неизвестная ошибка"}"
+                }
+            }
+        }
+        root.addView(startProxy, LinearLayout.LayoutParams(-1, 64))
+
+        val stopProxy = Button(this).apply {
+            text = "ОСТАНОВИТЬ BYEDPI"
+            setOnClickListener {
+                val stopped = byeDpi.stopProxy()
+                status.text = if (stopped) "ByeDPI остановлен" else "Локальный прокси не был запущен"
+            }
+        }
+        root.addView(stopProxy, LinearLayout.LayoutParams(-1, 64))
 
         val open = Button(this).apply {
             text = "ОТКРЫТЬ YOUTUBE"
