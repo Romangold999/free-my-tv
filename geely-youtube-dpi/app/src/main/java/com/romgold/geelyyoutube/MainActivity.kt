@@ -259,7 +259,7 @@ class MainActivity : Activity() {
                 "licenses/GPL-3.0.txt",
                 "licenses/ByeDPI-MIT.txt"
             )
-            val fullText = files.joinToString("\\n\\n") { file ->
+            val fullText = files.joinToString("\n\n") { file ->
                 assets.open(file).bufferedReader(Charsets.UTF_8).use { it.readText() }
             }
             val textView = TextView(this).apply {
