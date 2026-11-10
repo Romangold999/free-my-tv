@@ -4045,7 +4045,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         if (!picksMode()) {
             // No picks on screen: no cards, and the plain gradient behind, or with the clock your photo if there is one.
             if (!cards.isEmpty()) cards = new ArrayList<>();
-            boolean own = clockMode() && Photos.on(getContext());
+            boolean own = clockMode();
             Backdrop b = own ? Photos.backdrop(getContext(), ownReady) : null;
             if (b != null || !own) showBackdrop(b);
             heroDirty = true;
