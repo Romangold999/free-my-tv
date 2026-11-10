@@ -27,7 +27,14 @@ jobs:
       - name: Install Android SDK platform and build tools
         run: |
           yes | sdkmanager --licenses
-          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+          sdkmanager "platforms;android-35" "build-tools;35.0.0" "ndk;27.2.12479018" "cmake;3.22.1"
+      - name: Fetch pinned ByeDPI native dependency
+        run: |
+          git clone https://github.com/dovecoteescapee/ByeDPIAndroid.git third_party/ByeDPIAndroid
+          git -C third_party/ByeDPIAndroid checkout --detach 43db0955de687d43f9473374dc7c5548eaa55359
+          git -C third_party/ByeDPIAndroid submodule update --init --recursive
+          mkdir -p geely-youtube-dpi/app/src/main/cpp/byedpi
+          cp -a third_party/ByeDPIAndroid/app/src/main/cpp/byedpi/. geely-youtube-dpi/app/src/main/cpp/byedpi/
       - name: Generate Gradle wrapper
         working-directory: geely-youtube-dpi
         run: gradle wrapper --gradle-version 8.9
