@@ -135,6 +135,7 @@ final class HomeData {
                 temps.put(temp); codes.put(code); days.put(isDay ? 1 : 0);
             }
         }
+        if (currentPoint == null && series.length() > 0) currentPoint = series.getJSONObject(0);
         if (currentPoint == null) throw new IOException("MET Norway returned no current observation");
         JSONObject currentData = currentPoint.getJSONObject("data");
         JSONObject currentInstant = currentData.getJSONObject("instant").getJSONObject("details");
