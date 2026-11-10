@@ -13,6 +13,7 @@ import io.github.dovecoteescapee.byedpi.core.ByeDpiProxy
 /** Keeps the local SOCKS listener alive independently of Activity lifecycle. */
 class ByeDpiService : Service() {
     private var proxy: ByeDpiProxy? = null
+    private var activeArgs: String? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -28,6 +29,7 @@ class ByeDpiService : Service() {
             ACTION_STOP -> {
                 proxy?.stopProxy()
                 proxy = null
+                activeArgs = null
                 stopForeground(true)
                 stopSelf()
                 return START_NOT_STICKY
@@ -44,13 +46,24 @@ class ByeDpiService : Service() {
                     .putString("last_byedpi_args", args).apply()
                 startForeground(NOTIFICATION_ID, buildNotification("Запуск локального SOCKS5…"))
                 try {
+                    // Applying a different saved profile must replace the running
+                    // native listener; silently keeping the old arguments is misleading.
+                    if (proxy?.isRunning() == true && activeArgs != args) {
+                        proxy?.stopProxy()
+                        proxy = null
+                        activeArgs = null
+                    }
                     if (proxy?.isRunning() != true) {
-                        proxy = ByeDpiProxy()
-                        val started = proxy?.startProxy(args) == true
-                        if (started) updateNotification("Работает: 127.0.0.1:1080")
-                        else {
-                            updateNotification("Не удалось запустить ByeDPI")
+                        val candidate = ByeDpiProxy()
+                        if (candidate.startProxy(args)) {
+                            proxy = candidate
+                            activeArgs = args
+                            updateNotification("Работает: 127.0.0.1:1080")
+                        } else {
+                            candidate.stopProxy()
                             proxy = null
+                            activeArgs = null
+                            updateNotification("Не удалось запустить ByeDPI")
                             stopForeground(true)
                             stopSelf()
                         }
@@ -58,7 +71,10 @@ class ByeDpiService : Service() {
                         updateNotification("Работает: 127.0.0.1:1080")
                     }
                 } catch (error: Throwable) {
-                    updateNotification("Ошибка запуска ByeDPI")
+                    proxy?.stopProxy()
+                    proxy = null
+                    activeArgs = null
+                    updateNotification("Ошибка запуска ByeDPI: ${error.javaClass.simpleName}")
                     stopForeground(true)
                     stopSelf()
                 }
@@ -70,6 +86,7 @@ class ByeDpiService : Service() {
     override fun onDestroy() {
         proxy?.stopProxy()
         proxy = null
+        activeArgs = null
         if (activeService === this) activeService = null
         stopForeground(true)
         super.onDestroy()
