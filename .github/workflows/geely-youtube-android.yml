@@ -42,12 +42,9 @@ jobs:
           git -C third_party/ByeDPIAndroid submodule update --init --recursive
           mkdir -p geely-youtube-dpi/app/src/main/cpp/byedpi
           cp -a third_party/ByeDPIAndroid/app/src/main/cpp/byedpi/. geely-youtube-dpi/app/src/main/cpp/byedpi/
-      - name: Generate Gradle wrapper
-        working-directory: geely-youtube-dpi
-        run: gradle wrapper --gradle-version 8.9
       - name: Build debug APK
         working-directory: geely-youtube-dpi
-        run: ./gradlew --no-daemon assembleDebug
+        run: gradle --no-daemon assembleDebug
       - uses: actions/upload-artifact@v4
         with:
           name: geely-youtube-debug-apk
