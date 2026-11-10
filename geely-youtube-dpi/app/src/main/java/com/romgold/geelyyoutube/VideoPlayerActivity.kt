@@ -9,7 +9,7 @@ import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.source.DefaultMediaSourceFactory
 import com.google.android.exoplayer2.ui.PlayerView
-import com.google.android.exoplayer2.upstream.okhttp.OkHttpDataSource
+import com.google.android.exoplayer2.ext.okhttp.OkHttpDataSource
 import okhttp3.OkHttpClient
 import java.net.InetSocketAddress
 import java.net.Proxy
