@@ -47,7 +47,6 @@ class ByeDpiService : Service() {
                     if (proxy?.isRunning() != true) {
                         proxy = ByeDpiProxy()
                         val started = proxy?.startProxy(args) == true
-                        isActive = started
                         if (started) updateNotification("Работает: 127.0.0.1:1080")
                         else {
                             updateNotification("Не удалось запустить ByeDPI")
