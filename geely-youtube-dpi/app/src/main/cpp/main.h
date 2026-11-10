@@ -2,6 +2,7 @@
 extern char *oob_char;
 extern int NOT_EXIT;
 struct sockaddr_ina;
+int parse_args(int argc, char **argv);
 int get_default_ttl(void);
 int get_addr(const char *str, struct sockaddr_ina *addr);
 void *add(void **root, int *n, size_t ss);
