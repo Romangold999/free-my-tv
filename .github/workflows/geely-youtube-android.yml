@@ -1,0 +1,38 @@
+name: Geely YouTube Android build
+
+on:
+  push:
+    branches: [geely-youtube-dpi]
+    paths:
+      - 'geely-youtube-dpi/**'
+      - '.github/workflows/geely-youtube-android.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - uses: android-actions/setup-android@v3
+      - name: Generate Gradle wrapper
+        working-directory: geely-youtube-dpi
+        run: gradle wrapper --gradle-version 8.9
+      - name: Build debug APK
+        working-directory: geely-youtube-dpi
+        run: ./gradlew --no-daemon assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: geely-youtube-debug-apk
+          path: geely-youtube-dpi/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
