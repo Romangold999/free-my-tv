@@ -172,3 +172,12 @@ Do not promise a calendar delivery date before the major unknowns are resolved. 
 3. **Account-dependent features and head-unit release:** validate safe official Google sign-in/registration route and whether subscriptions/account sync are technically supported; test on actual Android 5.0 head unit, including ARMv7 native library, playback/audio/fullscreen/sleep-resume. Only then call it ready.
 
 Current immediate next task: implement and compile the embedded playback path, beginning with a supported player dependency that preserves minSdk 21, and route all media requests through the SOCKS5 proxy. Keep the original ByeDPI command line untouched as the baseline profile.
+
+
+## Playback integration attempt — 2026-11-10
+
+- Added ExoPlayer 2.19.1 core/UI and OkHttp extension; dependencies chosen to retain Android API 21 compatibility.
+- Added `VideoPlayerActivity` with an explicit SOCKS5 proxy client targeting `127.0.0.1:1080`, with connection retry fallback disabled.
+- Search-result tap now requests `StreamInfo` from NewPipe Extractor, selects a muxed (audio+video) stream, then launches the embedded player.
+- This is an initial progressive/muxed playback path only. Separate DASH audio/video streams, adaptive quality, captions, live playback, thumbnails, and foreground-service proxy lifecycle are not implemented.
+- **Not yet verified:** compilation of this exact commit, extractor stream availability, real network routing end-to-end, video/audio playback, Android 14 runtime, or Android 5.0 runtime. CI must pass before calling this a playable alpha.
