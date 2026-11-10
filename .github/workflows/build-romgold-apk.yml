@@ -54,8 +54,8 @@ jobs:
           build_script.write_text(bs.replace("package io.freemytv;", "package io.romgold.freemytv;"), encoding="utf-8")
           manifest = Path("app/AndroidManifest.xml")
           s = manifest.read_text(encoding="utf-8")
-          s = s.replace('android:versionCode="5"', 'android:versionCode="6"')
-          s = s.replace('android:versionName="1.4"', 'android:versionName="1.4-romgold"')
+          s = s.replace('android:versionCode="5"', 'android:versionCode="7"')
+          s = s.replace('android:versionName="1.4"', 'android:versionName="1.4.1-romgold"')
           manifest.write_text(s, encoding="utf-8")
 
           # Change the slideshow cadence from 30 seconds to five minutes.
