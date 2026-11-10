@@ -401,7 +401,8 @@ class MainActivity : Activity() {
             scaleType = ImageView.ScaleType.CENTER_CROP
             setBackgroundColor(Color.rgb(55, 65, 80))
         }
-        row.addView(image, LinearLayout.LayoutParams(dp(76), dp(76)))
+        val channelImageSize = if (resources.configuration.screenWidthDp >= 720) dp(92) else dp(76)
+        row.addView(image, LinearLayout.LayoutParams(channelImageSize, channelImageSize))
         val column = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(10), 0, 0, 0)
@@ -430,7 +431,14 @@ class MainActivity : Activity() {
             scaleType = ImageView.ScaleType.CENTER_CROP
             setBackgroundColor(Color.rgb(55, 65, 80))
         }
-        row.addView(image, LinearLayout.LayoutParams(dp(132), dp(76)))
+        val screenWidth = resources.configuration.screenWidthDp
+        val thumbWidth = when {
+            screenWidth >= 1000 -> dp(220)
+            screenWidth >= 600 -> dp(176)
+            screenWidth < 360 -> dp(104)
+            else -> dp(128)
+        }
+        row.addView(image, LinearLayout.LayoutParams(thumbWidth, (thumbWidth * 9 / 16)))
         val textColumn = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(10), 0, 0, 0)
@@ -582,8 +590,19 @@ class MainActivity : Activity() {
         header.addView(label("Лёгкий клиент с локальным ByeDPI", 12f, Color.LTGRAY))
         root.addView(header)
 
+        val compactNavigation = resources.configuration.screenWidthDp < 480
+        val navScroller = HorizontalScrollView(this).apply {
+            isHorizontalScrollBarEnabled = false
+            overScrollMode = View.OVER_SCROLL_NEVER
+        }
         val nav = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        val navItems = listOf(
+        val navItems = if (compactNavigation) listOf(
+            "home" to "Домой",
+            "search" to "Поиск",
+            "subscriptions" to "Подписки",
+            "library" to "История",
+            "profile" to "Профиль"
+        ) else listOf(
             "home" to "Главная",
             "search" to "Поиск",
             "subscriptions" to "Подписки",
@@ -592,12 +611,20 @@ class MainActivity : Activity() {
         )
         navItems.forEach { (key, title) ->
             val b = actionButton(title) { showPage(key) }
-            b.textSize = if (resources.configuration.screenWidthDp < 380) 10f else 12f
-            b.setPadding(dp(2), 0, dp(2), 0)
+            b.textSize = if (compactNavigation) 10f else 12f
+            b.minWidth = if (compactNavigation) dp(76) else dp(88)
+            b.minimumHeight = dp(48)
+            b.setPadding(dp(4), 0, dp(4), 0)
             navButtons[key] = b
-            nav.addView(b, LinearLayout.LayoutParams(0, dp(48), 1f))
+            val params = if (compactNavigation) LinearLayout.LayoutParams(dp(78), dp(50))
+                else LinearLayout.LayoutParams(0, dp(50), 1f)
+            nav.addView(b, params)
         }
-        root.addView(nav)
+        navScroller.addView(nav, ViewGroup.LayoutParams(
+            if (compactNavigation) ViewGroup.LayoutParams.WRAP_CONTENT else ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT
+        ))
+        root.addView(navScroller, LinearLayout.LayoutParams(-1, dp(52)))
 
         pageHost = FrameLayout(this)
         root.addView(pageHost, LinearLayout.LayoutParams(-1, 0, 1f))
