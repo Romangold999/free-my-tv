@@ -8,6 +8,7 @@ import android.graphics.LinearGradient;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.RectF;
+import android.graphics.drawable.Drawable;
 import android.graphics.RadialGradient;
 import android.graphics.Rect;
 import android.graphics.RuntimeShader;
@@ -43,7 +44,7 @@ import java.util.concurrent.Executors;
  * Without photos (no TMDB key, or before the first fetch): the big clock over the night aurora.
  */
 final class DreamView extends View implements Choreographer.FrameCallback, HomeData.Listener, Recs.Listener {
-    private static final long SHOW_MS = 30_000, FADE_MS = 3_000, FIRST_MS = 1_600;
+    private static final long SHOW_MS = 300_000, FADE_MS = 3_000, FIRST_MS = 1_600;
     private static final float ZOOM = 0.1f;
     /** Photos 10% larger than the screen (the zoom goes up to 1.1 without upscaling). */
     private static final int PW = 2112, PH = 1188;
@@ -103,6 +104,8 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
     }
 
     private final Scene scene = new Scene(false);
+    /** Bundled artwork: always available even before the network or photo feed comes online. */
+    private final Drawable offlineBackdrop;
     private final HomeData data;
     private final Recs recs;
     private final NowPlaying.Watch playing;
@@ -157,6 +160,7 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
 
     DreamView(Context c) {
         super(c);
+        offlineBackdrop = c.getDrawable(R.drawable.offline_screensaver);
         data = HomeData.get(c);
         recs = Recs.get(c);
         playing = new NowPlaying.Watch(c, () -> {
@@ -243,6 +247,7 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
         h = height;
         k = w / 1920f;
         scene.setSize(w, h);
+        if (offlineBackdrop != null) offlineBackdrop.setBounds(0, 0, w, h);
         content.setPosition(0, 0, w, h);
         chrome.setPosition(0, 0, w, h);
         // Without photos (the clock over the aurora).
@@ -820,7 +825,8 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
             lastSky = up;
             scene.advance(timeOffset + t);
         }
-        scene.drawBackground(canvas);
+        if (offlineBackdrop != null) offlineBackdrop.draw(canvas);
+        else scene.drawBackground(canvas);
         if (dirty) {
             Canvas rc = content.beginRecording(w, h);
             try {
