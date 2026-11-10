@@ -93,7 +93,7 @@ class ByeDpiProxy {
         val fd = socketFd
         val currentWorker = worker ?: return false
 
-        val result = if (fd >= 0) jniStopProxy(fd) else 0
+        if (fd >= 0) jniStopProxy(fd)
         if (fd >= 0) socketFd = -1
 
         // The native event loop must finish before reset_params() frees its
@@ -104,7 +104,7 @@ class ByeDpiProxy {
             jniResetProxyState()
             if (worker === currentWorker) worker = null
         }
-        return stopped && (fd < 0 || result == 0)
+        return stopped
     }
 
     fun isRunning(): Boolean = socketFd >= 0
