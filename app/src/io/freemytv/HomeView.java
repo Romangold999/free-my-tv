@@ -2243,7 +2243,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         bigTemp.setTextSize(88 * k);
         bigTemp.setColor(0xFFFFFFFF);
         c.drawText(nowTemp, left + 112 * k - Ui.leftBearing(bigTemp, nowTemp), r.top + 164 * k, bigTemp);
-        bigTemp.setTextSize(72 * k);
+        bigTemp.setTextSize(100 * k);
         cardText.setColor(0xF2FFFFFF);
         cardDim.setColor(0xB8DCEBFF);
         c.drawText(HomeData.condition(wx.code, wx.isDay), left + 24 * k, r.top + 218 * k, cardText);
