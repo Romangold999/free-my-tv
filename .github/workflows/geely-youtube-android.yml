@@ -55,6 +55,9 @@ jobs:
           APK="geely-youtube-dpi/app/build/outputs/apk/debug/app-debug.apk"
           test -f "$APK"
           CONTENTS="$(unzip -Z1 "$APK")"
+          for LICENSE in assets/licenses/GPL-3.0.txt assets/licenses/ByeDPI-MIT.txt assets/licenses/THIRD-PARTY-NOTICES.txt; do
+            echo "$CONTENTS" | grep -qx "$LICENSE"
+          done
           for ABI in armeabi-v7a arm64-v8a; do
             echo "$CONTENTS" | grep -qx "lib/$ABI/libbyedpi.so"
             unzip -p "$APK" "lib/$ABI/libbyedpi.so" > "/tmp/libbyedpi-$ABI.so"
