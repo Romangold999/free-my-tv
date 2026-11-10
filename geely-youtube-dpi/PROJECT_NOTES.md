@@ -21,15 +21,25 @@ Required product direction:
 - Do not require user to install Android Studio or do complicated local development steps.
 - Work only on branch `geely-youtube-dpi`; do not change `main` or unrelated project files.
 
-## User's exact ByeDPI profile
+## ByeDPI profiles — important distinction
 
-Preserve this exact string, including repeated options and their order. Do not normalize, deduplicate, or rewrite it:
+The command line supplied by the user is the **original baseline/reference profile**, not a permanently locked configuration. Keep an untouched copy so it can be restored and compared, but do NOT interpret this as a ban on changing ByeDPI arguments.
+
+Original baseline string (retain exact order, repetitions and spelling in the reference copy):
 
 ```text
--Ku -a3 -An -Kt,h -n vk.com -d1 -d3+s -s6+s -d9+s -s12+s -d15+s -s20+s -d25+s -s30+s -d35+s -r1+s -S -Mh,d -As -Kt,h -n vk.com -d1 -d3+s -s6+s -d9+s -s12+s -d15+s -s20+s -d25+s -s30+s -d35+s -S -Mh,d
+-Ku -a3 -An -Kt,h -n vk.com -d1 -d3+s -s6+s -d9+s -s12+s -d15+s -s20+s -d25+s -s30+s -d35+s -r1+s -S -Mh,d -As -Kt,h -n vk.com -d1 -d3+s -s6+s -d9+s -s12+s -d15+s -s20+s -d25+s -d30+s -d35+s -S -Mh,d
 ```
 
-The profile file `geely-youtube-dpi/profiles/user-supplied-youtube.txt` was corrected to match the Kotlin default in commit `a26dabd51c20dd99b41f34ed5b8759103fc0f4bd`.
+Rules for future work:
+- The user explicitly allows and expects tuning/updating ByeDPI arguments when the current profile stops working or performance/blocking conditions change.
+- Keep the original baseline intact as a rollback/reference copy; create separate editable working profiles (named and described) for experiments and production use.
+- Do not silently overwrite the baseline, remove duplicates, reorder options, or alter user-supplied text during copying/migration. Any intentional tuning belongs in a separate working profile and must be explained.
+- Record each tested change: profile name, exact arguments, date, target/service, test environment, observed result (works/doesn't work/partial), and previous profile to roll back to.
+- Allow editing profiles in the app without rebuilding the APK. Switching profiles should restart/reconfigure the proxy safely.
+- Never assume a profile remains effective forever; retest and update it when the user reports failure or conditions change.
+
+The profile file `geely-youtube-dpi/profiles/user-supplied-youtube.txt` was corrected to match the Kotlin default in commit `a26dabd51c20dd99b41f34ed5b8759103fc0f4bd`; treat that as the baseline copy unless the user explicitly chooses otherwise.
 
 ## Current implementation
 
