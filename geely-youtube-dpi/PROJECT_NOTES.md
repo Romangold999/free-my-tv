@@ -12,6 +12,10 @@ Build a separate Android application for YouTube on:
 - User's Android 14 phone.
 
 Required product direction:
+- Build a lightweight but genuinely usable YouTube-style client, not a proxy settings demo or a web shortcut.
+- Responsive/adaptive UI: scale and rearrange controls, navigation, cards and player to the actual display size/density and orientation. Must work on a phone and a wide Geely head-unit/monitor; landscape-first with large touch targets in car mode, while remaining usable on smaller screens.
+- Account flow: provide a safe sign-in / account-registration route for a Google/YouTube account, then expose account-dependent features such as subscriptions and library where technically supported. Investigate the supported official OAuth/browser handoff; never collect or store Google passwords in the app and never claim sync/login works until tested.
+- Core lightweight YouTube sections: Home/recommendations, Search, video playback, channel pages, subscriptions, history/library, account/profile and fullscreen player. Keep visual hierarchy familiar but remove unnecessary heavy UI.
 - Landscape interface with large, car-friendly controls.
 - YouTube search, videos, channels, subscriptions and fullscreen playback.
 - ByeDPI engine embedded in the app; local SOCKS5 proxy at 127.0.0.1:1080.
@@ -60,7 +64,21 @@ The profile file `geely-youtube-dpi/profiles/user-supplied-youtube.txt` was corr
 - Current proxy thread is daemon/background-thread based; a robust Android foreground-service/process-lifecycle implementation is still needed for reliable long-running use.
 - ByeDPIAndroid is GPL-3.0-or-later; core hufrea/byedpi is MIT. License texts are in `geely-youtube-dpi/licenses/`.
 
-## Latest build result — verified success
+## Latest build result — current branch status
+
+- Run `42875010424` for commit `328a9c1ffe74bed0e4daae4f9fc30815475f551a` completed with failure at Kotlin compilation. Exact error: `MainActivity.kt:43` passed a `String` to `SearchInfo.getInfo`, which expects a `SearchQueryHandler`.
+- The immediately preceding run `42874953459` for commit `84733986e7df58028dd50f90736a8ccab2cf844a` succeeded, including the SOCKS-routed extractor downloader. This success predates the YouTube search UI commit and does not validate the current HEAD.
+- Fix in progress: create the handler with `ServiceList.YouTube.searchQHFactory.fromQuery(query)` and pass it to `SearchInfo.getInfo`. Rebuild required before treating search integration as compile-verified.
+
+## Adaptive UI and account requirements (added 2026-11-10)
+
+- The interface must be responsive to display dimensions/density, not hard-coded for one screen. Use resource/layout breakpoints or measured available width to adapt navigation, content columns, cards and player sizing.
+- Support phone portrait/landscape and the Geely head unit / wide monitor. Car mode is landscape-first, high contrast, large tap targets, readable text at dashboard distance; phone layout should not waste space.
+- Target a lightweight YouTube-like experience with familiar sections: Home, Search, Subscriptions, Library/History, Channel, Account/Profile and full-screen playback.
+- Add Google/YouTube account sign-in and account creation/registration entry points only through a safe supported flow (official OAuth/browser handoff or other documented supported method). Never request/store Google passwords directly. NewPipe Extractor search alone does not provide account registration, authenticated subscriptions, or account sync. Verify feasibility and test authentication before marking it complete.
+- Keep core browsing/playback usable without sign-in where possible; clearly distinguish local features from account-synced features.
+
+## Latest build result — verified success (historical)
 
 GitHub Actions workflow:
 `.github/workflows/geely-youtube-android.yml`
