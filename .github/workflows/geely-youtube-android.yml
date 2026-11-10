@@ -42,8 +42,25 @@ jobs:
           git -C third_party/ByeDPIAndroid submodule update --init --recursive
           mkdir -p geely-youtube-dpi/app/src/main/cpp/byedpi
           cp -a third_party/ByeDPIAndroid/app/src/main/cpp/byedpi/. geely-youtube-dpi/app/src/main/cpp/byedpi/
-          sed -i 's/^int main(int argc, char \\*\\*argv) *$/int parse_args(int argc, char **argv)/' geely-youtube-dpi/app/src/main/cpp/byedpi/main.c
-          python3 -c "from pathlib import Path; p=Path('geely-youtube-dpi/app/src/main/cpp/byedpi/main.c'); s=p.read_text(); old='int parse_args(int argc, char **argv) \\\\n{'; new=old+'\\\\n    optind = 1;\\\\n    opterr = 0;'; assert old in s, 'parser entry not found'; s=s.replace(old,new,1); tail='    int status = run((struct sockaddr_ina *)&params.laddr);\\\\n    clear_params();\\\\n    return status;'; assert tail in s, 'parser tail not found'; p.write_text(s.replace(tail,'    return 0;',1))"
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("geely-youtube-dpi/app/src/main/cpp/byedpi/main.c")
+          s = p.read_text()
+          old = "int main(int argc, char **argv) "
+          if old not in s:
+              raise SystemExit("Could not locate upstream ByeDPI main()")
+          s = s.replace(old, "int parse_args(int argc, char **argv) ", 1)
+          s = s.replace(
+              "int parse_args(int argc, char **argv) {",
+              "int parse_args(int argc, char **argv) {\\n    optind = 1;\\n    opterr = 0;",
+              1
+          )
+          tail = "    int status = run((struct sockaddr_ina *)&params.laddr);\\n    clear_params();\\n    return status;"
+          if tail not in s:
+              raise SystemExit("Could not locate upstream ByeDPI main() tail")
+          s = s.replace(tail, "    return 0;", 1)
+          p.write_text(s)
+          PY
       - name: Verify original ByeDPI baseline consistency
         run: |
           EXPECTED='-Ku -a3 -An -Kt,h -n vk.com -d1 -d3+s -s6+s -d9+s -s12+s -d15+s -s20+s -d25+s -s30+s -d35+s -r1+s -S -Mh,d -As -Kt,h -n vk.com -d1 -d3+s -s6+s -d9+s -s12+s -d15+s -d20+s -d25+s -d30+s -d35+s -S -Mh,d'
