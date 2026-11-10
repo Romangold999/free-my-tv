@@ -8,10 +8,16 @@ This project lives in its own directory and branch inside the existing Free My T
 
 - Android 5.0 / API 21 head unit.
 - Android 14 phone.
-- ARMv7 (32-bit) and ARM64 builds, after verifying the head unit ABI.
+- ARMv7 (32-bit) and ARM64 builds, after verifying the head-unit ABI.
 - Large touch targets and a landscape-first in-car interface.
 - Search, channel/video browsing and playback.
 - An in-app DPI-bypass transport for the app's own network requests; no separate VPN app should be required.
+
+## User-supplied YouTube strategy
+
+The exact command line supplied by the user as currently working is saved in `profiles/user-supplied-youtube.txt`. Preserve it byte-for-byte as the initial default profile. Do not silently normalize, remove repeated flags, reorder arguments, or replace the `vk.com` host selector. The user reports that strategies sometimes become stale, so the app must expose an editable command-line field and allow saving multiple named profiles. A profile change must restart/reconfigure the local proxy without requiring an APK rebuild.
+
+The profile is user-tested on the user's network, not independently validated on the Geely head unit or all carriers. Treat it as a starting preset, not a universal guarantee. Record the date/device/network when the user later confirms a profile works or stops working.
 
 ## Network design
 
@@ -33,11 +39,12 @@ GitHub Actions will build APKs for the verified ABIs. The workflow must publish 
 
 - [x] Dedicated branch created from the existing launcher repository.
 - [x] Confirmed upstream ByeDPIAndroid has a JNI-accessible local SOCKS proxy path, separate from its VPN/TUN redirection path.
+- [x] Saved the exact user-supplied YouTube command as the initial editable profile.
 - [ ] Import/pin the Android 5-compatible NewPipe 0.28.8 source and preserve licensing.
 - [ ] Vendor the minimal ByeDPI native source and JNI bridge; inspect native submodule license and build flags.
 - [ ] Route every relevant NewPipe HTTP client through the local SOCKS proxy.
 - [ ] Verify head-unit CPU ABI and Android 5 runtime constraints.
-- [ ] Add large-touch, landscape-first in-car UI.
+- [ ] Add large-touch, landscape-first in-car UI and profile editor.
 - [ ] Add reproducible GitHub Actions APK builds.
 - [ ] Verify installation, search and playback on Android 5 and Android 14 devices.
 
