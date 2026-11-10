@@ -1050,13 +1050,18 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             if (clockMode()) heroLayer.invalidate();
         }
 
+        // The clock dashboard has a slow animated weather halo. Redraw only this layer at 10 fps while it is visible;
+        // the rest of the home screen remains idle, avoiding a permanent full-screen 60 fps render loop.
+        boolean clockWeatherMotion = clockMode() && Prefs.weather() && !Double.isNaN(data.weather.temp);
+        if (clockWeatherMotion) heroLayer.invalidate();
+
         // Busy: something is moving, or the sheet or the drawer is open.
         boolean busy = tilesMoving || statusMoving || heroMoving || drawerItemsMoving || gridMoving || drawerMoving
                 || menuMoving || sheetMoving || toastFading || heroFading || bgFading || nightMoving || tintMoving || sheetOpen
                 || sheet.value > 0.001f || recentMoving || drawerOpen || drawer.value > 0.001f || toast != null || !toasts.isEmpty();
         idle = !busy;
         if (busy) Choreographer.getInstance().postFrameCallback(this);
-        else Choreographer.getInstance().postFrameCallbackDelayed(this, 1000);
+        else Choreographer.getInstance().postFrameCallbackDelayed(this, clockWeatherMotion ? 100 : 1000);
     }
 
     private final int[] underState = new int[9];
