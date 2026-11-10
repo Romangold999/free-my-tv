@@ -509,17 +509,22 @@ class MainActivity : Activity() {
         extractorExecutor.execute {
             try {
                 val info = StreamInfo.getInfo(url)
-                val stream = info.videoStreams.firstOrNull { !it.isVideoOnly }
-                val streamUrl = stream?.content
-                if (streamUrl.isNullOrBlank()) {
-                    throw IllegalStateException("Не найден видеопоток со звуком в одном файле")
+                val muxedStream = info.videoStreams.firstOrNull { !it.isVideoOnly }
+                val videoStream = muxedStream ?: info.videoStreams.firstOrNull { it.isVideoOnly }
+                val audioStream = if (muxedStream == null) info.audioStreams.firstOrNull() else null
+                val streamUrl = videoStream?.content
+                if (streamUrl.isNullOrBlank() || (muxedStream == null && audioStream?.content.isNullOrBlank())) {
+                    throw IllegalStateException("Не удалось получить совместимую пару видеопотока и аудио")
                 }
+                val audioUrl = audioStream?.content
                 recordHistory(title, url)
                 runOnUiThread {
                     refreshHistory(homeRecent, 4)
                     refreshHistory(libraryList)
-                    startActivity(Intent(this, VideoPlayerActivity::class.java)
-                        .putExtra(VideoPlayerActivity.EXTRA_STREAM_URL, streamUrl))
+                    val playerIntent = Intent(this, VideoPlayerActivity::class.java)
+                        .putExtra(VideoPlayerActivity.EXTRA_STREAM_URL, streamUrl)
+                    if (!audioUrl.isNullOrBlank()) playerIntent.putExtra(VideoPlayerActivity.EXTRA_AUDIO_URL, audioUrl)
+                    startActivity(playerIntent)
                 }
             } catch (error: Throwable) {
                 runOnUiThread { status.text = "Не удалось открыть видео: ${error.message ?: error.javaClass.simpleName}" }
