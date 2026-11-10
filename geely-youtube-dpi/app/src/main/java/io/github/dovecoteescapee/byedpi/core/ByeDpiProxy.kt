@@ -31,19 +31,20 @@ class ByeDpiProxy {
             if (fd < 0) return false
 
             socketFd = fd
-            worker = Thread({
+            lateinit var nativeWorker: Thread
+            nativeWorker = Thread({
                 try {
                     jniStartProxy(fd)
                 } finally {
                     synchronized(this) {
                         if (socketFd == fd) socketFd = -1
-                        worker = null
+                        if (worker === nativeWorker) worker = null
                     }
                 }
-            }, "ByeDPI-native-proxy").apply {
-                isDaemon = true
-                start()
-            }
+            }, "ByeDPI-native-proxy")
+            nativeWorker.isDaemon = true
+            worker = nativeWorker
+            nativeWorker.start()
         }
 
         // Verify outside the monitor: the native worker must be able to publish
@@ -73,10 +74,11 @@ class ByeDpiProxy {
     fun stopProxy(): Boolean {
         val fd = socketFd
         if (fd < 0) return false
+        val currentWorker = worker
         val result = jniStopProxy(fd)
         socketFd = -1
-        worker?.join(1500)
-        worker = null
+        currentWorker?.join(1500)
+        if (worker === currentWorker) worker = null
         return result == 0
     }
 
