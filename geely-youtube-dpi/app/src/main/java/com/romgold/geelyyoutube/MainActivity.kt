@@ -23,7 +23,6 @@ class MainActivity : Activity() {
     private lateinit var searchResults: LinearLayout
     private val extractorExecutor = Executors.newSingleThreadExecutor()
     private val prefs by lazy { getSharedPreferences("dpi_profiles", Context.MODE_PRIVATE) }
-    private val byeDpi by lazy { ByeDpiProxy() }
 
     private val defaultArgs = "-Ku -a3 -An -Kt,h -n vk.com -d1 -d3+s -s6+s -d9+s -s12+s -d15+s -s20+s -d25+s -s30+s -d35+s -r1+s -S -Mh,d -As -Kt,h -n vk.com -d1 -d3+s -s6+s -d9+s -s12+s -d15+s -s20+s -d25+s -d30+s -d35+s -S -Mh,d"
 
@@ -33,7 +32,7 @@ class MainActivity : Activity() {
             status.text = "Введи запрос для поиска"
             return
         }
-        if (!byeDpi.isRunning()) {
+        if (!ByeDpiService.isProxyRunning()) {
             status.text = "Сначала запусти ByeDPI: поиск идёт через SOCKS5 127.0.0.1:1080"
             return
         }
@@ -171,8 +170,11 @@ class MainActivity : Activity() {
             text = "ЗАПУСТИТЬ BYEDPI"
             setOnClickListener {
                 try {
-                    val started = byeDpi.startProxy(arguments.text.toString())
-                    status.text = if (started) "ByeDPI запущен: SOCKS5 127.0.0.1:1080" else "ByeDPI не запустился. Проверь аргументы."
+                    val intent = android.content.Intent(this, ByeDpiService::class.java)
+                        .setAction(ByeDpiService.ACTION_START)
+                        .putExtra(ByeDpiService.EXTRA_ARGUMENTS, arguments.text.toString())
+                    if (android.os.Build.VERSION.SDK_INT >= 26) startForegroundService(intent) else startService(intent)
+                    status.text = "Запрос на запуск ByeDPI отправлен. Проверяем состояние…"
                 } catch (error: Exception) {
                     status.text = "Ошибка ByeDPI: ${error.message ?: "неизвестная ошибка"}"
                 }
@@ -183,8 +185,9 @@ class MainActivity : Activity() {
         val stopProxy = Button(this).apply {
             text = "ОСТАНОВИТЬ BYEDPI"
             setOnClickListener {
-                val stopped = byeDpi.stopProxy()
-                status.text = if (stopped) "ByeDPI остановлен" else "Локальный прокси не был запущен"
+                val intent = android.content.Intent(this, ByeDpiService::class.java).setAction(ByeDpiService.ACTION_STOP)
+                startService(intent)
+                status.text = "Остановка ByeDPI запрошена"
             }
         }
         root.addView(stopProxy, LinearLayout.LayoutParams(-1, 64))
