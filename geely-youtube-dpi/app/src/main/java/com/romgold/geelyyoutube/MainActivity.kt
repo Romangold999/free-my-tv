@@ -448,9 +448,7 @@ class MainActivity : Activity() {
         homeFeed.addView(label("Загружаем рекомендации…", 13f, Color.LTGRAY))
         extractorExecutor.execute {
             try {
-                val kiosk = ServiceList.YouTube.kioskList.defaultKioskExtractor()
-                kiosk.fetchPage()
-                val info = KioskInfo.getInfo(kiosk)
+                val info = KioskInfo.getInfo(ServiceList.YouTube, "https://www.youtube.com/feed/trending")
                 runOnUiThread {
                     homeFeed.removeAllViews()
                     info.relatedItems.forEachIndexed { index, item ->
